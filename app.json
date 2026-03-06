@@ -9,9 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.ryanspencer.cattinghour",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ryanspencer.cattinghour",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +45,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b9efe0ad-f55f-499f-847a-2bc7ddba19c8"
+      }
+    },
+    "owner": "rspencer1220"
   }
 }
