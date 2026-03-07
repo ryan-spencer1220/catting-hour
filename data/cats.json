@@ -1,0 +1,98 @@
+[
+  {
+    "id": "1",
+    "name": "Mochi",
+    "type": "Domestic Shorthair",
+    "temperament": "Friendly",
+    "indoor": false,
+    "notes": "Often seen near the coffee shop.",
+    "lat": 37.7749,
+    "lng": -122.4194,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-01T12:00:00Z"
+  },
+  {
+    "id": "2",
+    "name": "Luna",
+    "type": "Siamese",
+    "temperament": "Shy",
+    "indoor": true,
+    "notes": "Spotted on apartment balcony.",
+    "lat": 37.7765,
+    "lng": -122.4241,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-02T15:30:00Z"
+  },
+  {
+    "id": "3",
+    "name": "Biscuit",
+    "type": "Tabby",
+    "temperament": "Playful",
+    "indoor": false,
+    "notes": "Chases butterflies in the park.",
+    "lat": 37.7722,
+    "lng": -122.421,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-03T09:20:00Z"
+  },
+  {
+    "id": "4",
+    "name": "Maple",
+    "type": "Calico",
+    "temperament": "Curious",
+    "indoor": false,
+    "notes": "Roams the Alberta Arts district.",
+    "lat": 45.5316,
+    "lng": -122.6615,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-04T08:15:00Z"
+  },
+  {
+    "id": "5",
+    "name": "Nimbus",
+    "type": "Russian Blue",
+    "temperament": "Calm",
+    "indoor": true,
+    "notes": "Seen lounging in the Pearl District windows.",
+    "lat": 45.5296,
+    "lng": -122.6846,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-05T11:40:00Z"
+  },
+  {
+    "id": "6",
+    "name": "Pistachio",
+    "type": "Tabby",
+    "temperament": "Playful",
+    "indoor": false,
+    "notes": "Known to visit the Laurelhurst Park area.",
+    "lat": 45.5165,
+    "lng": -122.6309,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-06T14:22:00Z"
+  },
+  {
+    "id": "7",
+    "name": "Juniper",
+    "type": "Domestic Longhair",
+    "temperament": "Shy",
+    "indoor": false,
+    "notes": "Often spotted near Sellwood-Moreland shops.",
+    "lat": 45.468,
+    "lng": -122.6474,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-06T16:05:00Z"
+  },
+  {
+    "id": "8",
+    "name": "Poppy",
+    "type": "Tortoiseshell",
+    "temperament": "Friendly",
+    "indoor": true,
+    "notes": "Lives near Washington Park; often seen on porches.",
+    "lat": 45.516,
+    "lng": -122.7165,
+    "image": "/assets/images/partial-react-logo.png",
+    "createdAt": "2026-03-06T17:30:00Z"
+  }
+]

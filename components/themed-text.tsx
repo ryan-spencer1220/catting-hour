@@ -1,60 +1,47 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import React from "react";
+import { StyleSheet, Text, TextProps } from "react-native";
 
-import { useThemeColor } from '@/hooks/use-theme-color';
-
-export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+type ThemedTextProps = TextProps & {
+  type?: "title" | "subtitle" | "link" | "default";
 };
 
-export function ThemedText({
-  style,
-  lightColor,
-  darkColor,
-  type = 'default',
-  ...rest
-}: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+export function ThemedText({ type = "default", style, children, ...rest }: ThemedTextProps) {
+  const colorScheme = useColorScheme();
 
   return (
     <Text
+      {...rest}
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        styles.base,
+        type === "title" && styles.title,
+        type === "subtitle" && styles.subtitle,
+        type === "link" && styles.link,
+        colorScheme === "dark" && styles.darkText,
         style,
       ]}
-      {...rest}
-    />
+    >
+      {children}
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
+  base: {
+    color: "#111827",
   },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+  darkText: {
+    color: "#fff",
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: 20,
+    fontWeight: "700",
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 16,
   },
   link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+    color: "#2563eb",
+    textDecorationLine: "underline",
   },
 });

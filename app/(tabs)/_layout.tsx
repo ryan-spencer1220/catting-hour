@@ -1,33 +1,59 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
+export default function TabsLayout() {
   const colorScheme = useColorScheme();
+  const activeTint = colorScheme === "dark" ? "#fff" : "#111827";
+  const bg = colorScheme === "dark" ? "#0b1220" : "#fff";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: activeTint,
+        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6" },
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="map"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Map",
+          tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="recently"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Recently",
+          tabBarIcon: ({ color, size }) => <Ionicons name="time" color={color} size={size} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="my-cats"
+        options={{
+          title: "My Cats",
+          tabBarIcon: ({ color, size }) => <Ionicons name="paw" color={color} size={size} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="cats"
+        options={{
+          // Hide the folder-based cats routes from the tab bar. They remain navigable via router.push('/cats/create') or router.push('/cats/1')
+          tabBarButton: () => null,
+          headerShown: false,
         }}
       />
     </Tabs>

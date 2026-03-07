@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.ryanspencer.cattinghour",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to center the map. Your location is only used locally and not stored or shared.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.ryanspencer.cattinghour",
@@ -21,7 +25,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -47,6 +55,7 @@
       "reactCompiler": true
     },
     "extra": {
+      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoicnNwZW5jZXIiLCJhIjoiY20wZ3lpcmN4MDVzNjJscTJnYmtlNnNnMSJ9.MFGDyR5V8OEZnPQTr918Rw",
       "router": {},
       "eas": {
         "projectId": "b9efe0ad-f55f-499f-847a-2bc7ddba19c8"
