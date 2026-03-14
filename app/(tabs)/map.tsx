@@ -1,5 +1,6 @@
-import catsData from "@/data/cats.json";
+import bundledCats from "@/data/cats.json";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { fetchAllCats } from "@/lib/cats";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -19,6 +20,7 @@ export default function MapScreen() {
 
   const [location, setLocation] = useState<any | null>(null);
   const [locationResolved, setLocationResolved] = useState(false);
+  const [cats, setCats] = useState<any[] | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -60,13 +62,32 @@ export default function MapScreen() {
     };
   }, []);
 
+  // fetch cats from Supabase
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await fetchAllCats();
+        if (!mounted) return;
+        setCats(rows);
+      } catch (e) {
+        // keep bundled cats as fallback
+        console.warn("Failed to load cats from Supabase", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const defaultCenter = [-122.431297, 37.773972];
   const center = location && location !== false ? [location.coords.longitude, location.coords.latitude] : defaultCenter;
 
   const styleUrl = colorScheme === "dark" ? "mapbox://styles/mapbox/dark-v10" : "mapbox://styles/mapbox/streets-v11";
 
   const html = useMemo(() => {
-    const initialMarkers = JSON.stringify(catsData || []);
+    const initialMarkers = JSON.stringify(cats || bundledCats || []);
     return `
       <!doctype html>
       <html>
@@ -230,7 +251,7 @@ export default function MapScreen() {
         </body>
       </html>
     `;
-  }, [MAPBOX_ACCESS_TOKEN, colorScheme, center[0], center[1], styleUrl, catsData]);
+  }, [MAPBOX_ACCESS_TOKEN, colorScheme, center[0], center[1], styleUrl, cats]);
 
   if (!locationResolved) {
     return (

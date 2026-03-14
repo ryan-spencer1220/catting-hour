@@ -1,13 +1,72 @@
-import cats from "@/data/cats.json";
+import bundledCats from "@/data/cats.json";
+import { fetchCatById } from "@/lib/cats";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
-import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function CatDetail() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = params.id ?? "";
+  const [cat, setCat] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const cat = (cats as any[]).find((c) => String(c.id) === String(id));
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // Try to load user cats from AsyncStorage
+        const raw = await AsyncStorage.getItem("myCats");
+        let myCats = [];
+        if (raw) {
+          myCats = JSON.parse(raw);
+        }
+
+        // find in myCats first
+        const foundLocal = (myCats as any[]).find((c) => String(c.id) === String(id));
+        if (foundLocal) {
+          if (mounted) setCat(foundLocal);
+          return;
+        }
+
+        // fallback to backend
+        try {
+          const backend = await fetchCatById(id);
+          if (backend) {
+            if (mounted) setCat(backend);
+            return;
+          }
+        } catch (e) {
+          // ignore backend error
+        }
+
+        // fallback to bundled cats
+        const foundBundled = (bundledCats as any[]).find((c) => String(c.id) === String(id));
+        if (foundBundled) {
+          if (mounted) setCat(foundBundled);
+          return;
+        }
+
+        if (mounted) setCat(null);
+      } catch (err) {
+        if (mounted) setCat(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   if (!cat) {
     return (

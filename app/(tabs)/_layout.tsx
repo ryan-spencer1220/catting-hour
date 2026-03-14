@@ -10,11 +10,14 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{
+      // Use a function so we can hide specific auto-generated routes (like the nested `cats` folder)
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: activeTint,
         tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6" },
-      }}
+        // Hide the automatically generated 'cats' tab if present
+        tabBarButton: route.name === "cats" ? () => null : undefined,
+      })}
     >
       <Tabs.Screen
         name="map"
@@ -48,14 +51,7 @@ export default function TabsLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="cats"
-        options={{
-          // Hide the folder-based cats routes from the tab bar. They remain navigable via router.push('/cats/create') or router.push('/cats/1')
-          tabBarButton: () => null,
-          headerShown: false,
-        }}
-      />
+      {/* The 'cats' folder routes (e.g. /cats/create) are intentionally not added as a tab. */}
     </Tabs>
   );
 }
