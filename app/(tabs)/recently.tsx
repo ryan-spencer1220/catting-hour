@@ -2,7 +2,7 @@ import bundledCats from "@/data/cats.json";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function RecentlyScreen() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function RecentlyScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {cats === null ? (
         <ActivityIndicator />
       ) : (
@@ -61,7 +61,7 @@ export default function RecentlyScreen() {
           contentContainerStyle={{ padding: 12 }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

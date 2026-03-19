@@ -60,11 +60,6 @@ export default function RegisterScreen() {
           secureTextEntry
           autoCapitalize="none"
           autoCorrect={false}
-          /*
-            Disable iOS autofill / password generator overlay that can cover the field.
-            If you want the system to provide strong passwords instead, change to
-            textContentType="newPassword" and autoComplete="password-new".
-          */
           textContentType="none"
           autoComplete="off"
         />

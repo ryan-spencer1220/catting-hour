@@ -1,7 +1,7 @@
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function MyCatsScreen() {
   const router = useRouter();
@@ -26,21 +26,21 @@ export default function MyCatsScreen() {
 
   if (cats === null)
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <ActivityIndicator />
-      </View>
+      </SafeAreaView>
     );
 
   if (!cats.length) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <Text>No cats logged yet.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={cats}
         keyExtractor={(i) => String(i.id)}
@@ -58,7 +58,7 @@ export default function MyCatsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         contentContainerStyle={{ padding: 12 }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

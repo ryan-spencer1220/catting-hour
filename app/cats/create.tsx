@@ -1,13 +1,19 @@
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 export default function CreateCat() {
   const params = useLocalSearchParams<{ lng?: string; lat?: string }>();
   const router = useRouter();
   const lng = parseFloat(params.lng ?? "0");
   const lat = parseFloat(params.lat ?? "0");
+
+  useEffect(() => {
+    // log mounting and params so we can see if the screen is being reached
+    // eslint-disable-next-line no-console
+    console.log("CreateCat mounted", { params, lng, lat });
+  }, [params]);
 
   const [name, setName] = useState("");
   const [type, setType] = useState("Unknown");
@@ -52,49 +58,57 @@ export default function CreateCat() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Add a cat</Text>
-      <Text style={styles.label}>Location</Text>
-      <Text style={styles.value}>
-        {lat.toFixed(6)}, {lng.toFixed(6)}
-      </Text>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.debugBanner}>
+          <Text style={styles.debugText}>Create screen — params: {JSON.stringify(params)}</Text>
+        </View>
+        <Text style={styles.heading}>Add a cat</Text>
+        <Text style={styles.label}>Location</Text>
+        <Text style={styles.value}>
+          {lat.toFixed(6)}, {lng.toFixed(6)}
+        </Text>
 
-      <Text style={styles.label}>Name</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Cat name" />
+        <Text style={styles.label}>Name</Text>
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Cat name" />
 
-      <Text style={styles.label}>Type</Text>
-      <TextInput style={styles.input} value={type} onChangeText={setType} placeholder="Breed or type" />
+        <Text style={styles.label}>Type</Text>
+        <TextInput style={styles.input} value={type} onChangeText={setType} placeholder="Breed or type" />
 
-      <Text style={styles.label}>Temperament</Text>
-      <TextInput style={styles.input} value={temperament} onChangeText={setTemperament} placeholder="Friendly / Shy / Aggressive" />
+        <Text style={styles.label}>Temperament</Text>
+        <TextInput style={styles.input} value={temperament} onChangeText={setTemperament} placeholder="Friendly / Shy / Aggressive" />
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Indoor</Text>
-        <Switch value={indoor} onValueChange={setIndoor} />
-      </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Indoor</Text>
+          <Switch value={indoor} onValueChange={setIndoor} />
+        </View>
 
-      <Text style={styles.label}>Photo</Text>
-      <Pressable style={styles.photoButton} onPress={pickImage}>
-        <Text style={styles.photoButtonText}>{imageUri ? "Change photo" : "Add photo"}</Text>
-      </Pressable>
-      {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
+        <Text style={styles.label}>Photo</Text>
+        <Pressable style={styles.photoButton} onPress={pickImage}>
+          <Text style={styles.photoButtonText}>{imageUri ? "Change photo" : "Add photo"}</Text>
+        </Pressable>
+        {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
 
-      <Text style={styles.label}>Notes</Text>
-      <TextInput style={[styles.input, styles.multiline]} value={notes} onChangeText={setNotes} placeholder="Any notes" multiline />
+        <Text style={styles.label}>Notes</Text>
+        <TextInput style={[styles.input, styles.multiline]} value={notes} onChangeText={setNotes} placeholder="Any notes" multiline />
 
-      <Pressable style={styles.button} onPress={submit}>
-        <Text style={styles.buttonText}>Save</Text>
-      </Pressable>
+        <Pressable style={styles.button} onPress={submit}>
+          <Text style={styles.buttonText}>Save</Text>
+        </Pressable>
 
-      <Pressable style={[styles.button, styles.cancel]} onPress={() => router.back()}>
-        <Text style={[styles.buttonText, styles.cancelText]}>Cancel</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable style={[styles.button, styles.cancel]} onPress={() => router.back()}>
+          <Text style={[styles.buttonText, styles.cancelText]}>Cancel</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingTop: 40 },
+  safe: { flex: 1, backgroundColor: "#fff" },
+  container: { padding: 20, paddingTop: 40, flexGrow: 1, alignItems: "center" },
+  debugBanner: { width: "100%", backgroundColor: "#ffeb3b", padding: 8, borderRadius: 6, marginBottom: 12, alignItems: "center" },
+  debugText: { color: "#111", fontWeight: "700" },
   heading: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
   label: { marginTop: 12, marginBottom: 6, color: "#374151", fontWeight: "600" },
   value: { color: "#6b7280" },

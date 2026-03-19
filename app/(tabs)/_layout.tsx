@@ -14,9 +14,12 @@ export default function TabsLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: activeTint,
-        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6" },
-        // Hide the automatically generated 'cats' tab if present
-        tabBarButton: route.name === "cats" ? () => null : undefined,
+        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6", display: "flex", justifyContent: "space-around", paddingHorizontal: 8 },
+        // Hide the auto-generated 'cats' tab (exactly 'cats' or generated names such as 'cats_index' or 'cats_create')
+        tabBarButton:
+          typeof route.name === "string" && (route.name === "cats" || route.name === "cats_index" || route.name.startsWith("cats_"))
+            ? () => null
+            : undefined,
       })}
     >
       <Tabs.Screen
