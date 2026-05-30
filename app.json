@@ -57,13 +57,6 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoicnNwZW5jZXIiLCJhIjoiY20wZ3lpcmN4MDVzNjJscTJnYmtlNnNnMSJ9.MFGDyR5V8OEZnPQTr918Rw",
-      "router": {},
-      "eas": {
-        "projectId": "b9efe0ad-f55f-499f-847a-2bc7ddba19c8"
-      }
-    },
     "owner": "rspencer1220"
   }
 }
