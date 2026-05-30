@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generate Catting Hour Icons</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f5f7; padding: 40px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    p { color: #6b7280; margin-bottom: 24px; }
+    small { color: #9ca3af; font-size: 12px; }
+    .previews { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-end; margin: 24px 0 32px; }
+    .preview { text-align: center; }
+    .preview canvas { display: block; border-radius: 22%; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .preview span { display: block; margin-top: 8px; font-size: 12px; color: #6b7280; }
+    button {
+      background: #a78bfa; color: white; border: none; padding: 14px 28px;
+      border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #8b5cf6; }
+    .file-list { margin-top: 20px; background: #fff; border-radius: 10px; padding: 16px 20px; }
+    .file-list li { font-size: 13px; color: #374151; margin: 6px 0; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h1>The Catting Hour — Icon Generator</h1>
+  <p>Click "Download all icons" and move the files into <code>assets/images/</code>.</p>
+  <small>Paw print: <a href="https://commons.wikimedia.org/wiki/File:Paw-print.svg" target="_blank">Wikimedia Commons</a>, CC BY-SA 3.0</small>
+
+  <div class="previews">
+    <div class="preview">
+      <canvas id="c-icon" width="1024" height="1024" style="width:120px;height:120px;"></canvas>
+      <span>icon.png (1024×1024)</span>
+    </div>
+    <div class="preview">
+      <canvas id="c-splash" width="512" height="512" style="width:80px;height:80px;"></canvas>
+      <span>splash-icon.png (512×512)</span>
+    </div>
+    <div class="preview">
+      <canvas id="c-fg" width="1024" height="1024" style="width:120px;height:120px;background:#e9d8fd;border-radius:22%"></canvas>
+      <span>android-foreground.png</span>
+    </div>
+    <div class="preview">
+      <canvas id="c-bg" width="1024" height="1024" style="width:120px;height:120px;border-radius:22%"></canvas>
+      <span>android-background.png</span>
+    </div>
+    <div class="preview" style="background:#1a1a2e; padding:12px; border-radius:14px;">
+      <canvas id="c-mono" width="1024" height="1024" style="width:120px;height:120px;border-radius:22%;"></canvas>
+      <span style="color:#9ca3af;">android-monochrome.png</span>
+    </div>
+  </div>
+
+  <button onclick="downloadAll()">Download all icons</button>
+
+  <div class="file-list">
+    <strong>Replace these files:</strong>
+    <ul>
+      <li>icon.png              → assets/images/icon.png</li>
+      <li>splash-icon.png       → assets/images/splash-icon.png</li>
+      <li>android-icon-foreground.png  → assets/images/android-icon-foreground.png</li>
+      <li>android-icon-background.png  → assets/images/android-icon-background.png</li>
+      <li>android-icon-monochrome.png  → assets/images/android-icon-monochrome.png</li>
+    </ul>
+  </div>
+
+  <!-- Hidden SVG used as image source -->
+  <svg id="paw-white" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 419.14468 403.60483"
+       style="display:none" width="419" height="404">
+    <path fill="white" d="M 281.78125 0 C 280.89861 0.011256107 279.99321 0.05451875 279.09375 0.125 C 243.27015 6.3085 223.57295 44.18935 220.71875 77.59375 C 216.54805 107.90515 229.9058 146.86425 263.1875 153.65625 C 268.015 154.57535 273.0311 154.1553 277.75 152.875 C 317.8269 139.4366 335.76175 91.97195 329.96875 52.65625 C 328.28477 27.263859 309.14316 -0.3489393 281.78125 0 z M 129.90625 1.625 C 107.63131 2.1717807 90.279662 24.7634 86.75 46 C 79.3091 88.0743 98.44834 140.35185 142.28125 153.65625 C 146.38695 154.54915 150.63375 154.6411 154.78125 154 C 184.40765 149.0625 196.95825 115.84615 195.71875 89.03125 C 194.82705 53.65875 176.45285 12.7581 139.71875 2.8125 C 136.36096 1.9220875 133.08838 1.5468885 129.90625 1.625 z M 378.84375 121.125 C 340.30945 123.4304 313.8911 161.87875 310.125 197.78125 C 305.0254 223.67495 318.8299 258.3078 348.375 260.375 C 389.5717 259.8672 417.67605 215.84645 418.84375 177.96875 C 421.44955 152.91745 406.69275 122.5082 378.84375 121.125 z M 41.5625 129.65625 C 25.168497 129.5152 9.0449188 139.33506 3.6875 156 C -10.6052 200.579 18.0964 257.03815 65.3125 266.40625 C 85.0181 269.77835 102.33285 254.6454 107.21875 236.4375 C 117.57335 197.4927 96.3054 152.27225 60.3125 134.59375 C 54.448578 131.30284 47.977544 129.71144 41.5625 129.65625 z M 214.3125 209.59375 C 182.17313 209.66229 149.52974 225.97193 128.71875 250.25 C 106.24135 278.5472 87.8285 311.4765 80.625 347.1875 C 71.8736 372.894 91.70839 402.47795 119.1875 402.65625 C 152.2464 403.57455 180.65825 380.8733 213.53125 379.1875 C 241.42135 374.9358 266.39435 389.4427 291.46875 398.9375 C 312.81805 408.0688 342.31905 404.56945 353.21875 381.59375 C 361.79235 358.17505 349.17285 333.20375 338.71875 312.40625 C 317.39655 278.64925 294.55365 243.17045 259.59375 222.09375 C 245.58084 213.40805 230.00847 209.56028 214.3125 209.59375 z"/>
+  </svg>
+
+  <svg id="paw-purple" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 419.14468 403.60483"
+       style="display:none" width="419" height="404">
+    <path fill="#a78bfa" d="M 281.78125 0 C 280.89861 0.011256107 279.99321 0.05451875 279.09375 0.125 C 243.27015 6.3085 223.57295 44.18935 220.71875 77.59375 C 216.54805 107.90515 229.9058 146.86425 263.1875 153.65625 C 268.015 154.57535 273.0311 154.1553 277.75 152.875 C 317.8269 139.4366 335.76175 91.97195 329.96875 52.65625 C 328.28477 27.263859 309.14316 -0.3489393 281.78125 0 z M 129.90625 1.625 C 107.63131 2.1717807 90.279662 24.7634 86.75 46 C 79.3091 88.0743 98.44834 140.35185 142.28125 153.65625 C 146.38695 154.54915 150.63375 154.6411 154.78125 154 C 184.40765 149.0625 196.95825 115.84615 195.71875 89.03125 C 194.82705 53.65875 176.45285 12.7581 139.71875 2.8125 C 136.36096 1.9220875 133.09838 1.5468885 129.90625 1.625 z M 378.84375 121.125 C 340.30945 123.4304 313.8911 161.87875 310.125 197.78125 C 305.0254 223.67495 318.8299 258.3078 348.375 260.375 C 389.5717 259.8672 417.67605 215.84645 418.84375 177.96875 C 421.44955 152.91745 406.69275 122.5082 378.84375 121.125 z M 41.5625 129.65625 C 25.168497 129.5152 9.0449188 139.33506 3.6875 156 C -10.6052 200.579 18.0964 257.03815 65.3125 266.40625 C 85.0181 269.77835 102.33285 254.6454 107.21875 236.4375 C 117.57335 197.4927 96.3054 152.27225 60.3125 134.59375 C 54.448578 131.30284 47.977544 129.71144 41.5625 129.65625 z M 214.3125 209.59375 C 182.17313 209.66229 149.52974 225.97193 128.71875 250.25 C 106.24135 278.5472 87.8285 311.4765 80.625 347.1875 C 71.8736 372.894 91.70839 402.47795 119.1875 402.65625 C 152.2464 403.57455 180.65825 380.8733 213.53125 379.1875 C 241.42135 374.9358 266.39435 389.4427 291.46875 398.9375 C 312.81805 408.0688 342.31905 404.56945 353.21875 381.59375 C 361.79235 358.17505 349.17285 333.20375 338.71875 312.40625 C 317.39655 278.64925 294.55365 243.17045 259.59375 222.09375 C 245.58084 213.40805 230.00847 209.56028 214.3125 209.59375 z"/>
+  </svg>
+
+  <script>
+    const PURPLE       = '#a78bfa';
+    const PURPLE_DARK  = '#7c3aed';
+
+    function svgToImg(svgEl) {
+      return new Promise((resolve) => {
+        const xml = new XMLSerializer().serializeToString(svgEl);
+        const blob = new Blob([xml], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.src = url;
+      });
+    }
+
+    function purpleGradientBg(ctx, size) {
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#c4b5fd');
+      grad.addColorStop(1, PURPLE_DARK);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    // Draw paw centered on canvas, scaled to fill `fraction` of the canvas
+    function drawPawOnCanvas(canvas, img, { bg, fraction = 0.62, transparent = false } = {}) {
+      const ctx = canvas.getContext('2d');
+      const S = canvas.width;
+      ctx.clearRect(0, 0, S, S);
+      if (!transparent) {
+        if (bg) {
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, S, S);
+        } else {
+          purpleGradientBg(ctx, S);
+        }
+      }
+      const drawSize = S * fraction;
+      const x = (S - drawSize) / 2;
+      const y = (S - drawSize) / 2;
+      ctx.drawImage(img, x, y, drawSize, drawSize);
+    }
+
+    async function init() {
+      const pawWhiteSvg  = document.getElementById('paw-white');
+      const pawPurpleSvg = document.getElementById('paw-purple');
+      const imgWhite  = await svgToImg(pawWhiteSvg);
+      const imgPurple = await svgToImg(pawPurpleSvg);
+
+      // App icon — gradient bg, white paw
+      drawPawOnCanvas(document.getElementById('c-icon'), imgWhite);
+
+      // Splash icon — gradient bg, white paw (slightly smaller for padding)
+      drawPawOnCanvas(document.getElementById('c-splash'), imgWhite, { fraction: 0.6 });
+
+      // Android foreground — transparent bg, purple paw (extra padding for safe zone)
+      drawPawOnCanvas(document.getElementById('c-fg'), imgPurple, { transparent: true, fraction: 0.5 });
+
+      // Android background — solid gradient, no paw
+      const bgCanvas = document.getElementById('c-bg');
+      purpleGradientBg(bgCanvas.getContext('2d'), 1024);
+
+      // Android monochrome — transparent bg, white paw
+      drawPawOnCanvas(document.getElementById('c-mono'), imgWhite, { transparent: true, fraction: 0.5 });
+    }
+
+    init();
+
+    function download(canvas, filename) {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+
+    function downloadAll() {
+      const canvases = [
+        ['c-icon',  'icon.png'],
+        ['c-splash','splash-icon.png'],
+        ['c-fg',    'android-icon-foreground.png'],
+        ['c-bg',    'android-icon-background.png'],
+        ['c-mono',  'android-icon-monochrome.png'],
+      ];
+      canvases.forEach(([id, name], i) => {
+        setTimeout(() => download(document.getElementById(id), name), i * 300);
+      });
+    }
+  </script>
+</body>
+</html>

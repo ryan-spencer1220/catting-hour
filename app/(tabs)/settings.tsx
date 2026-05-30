@@ -1,16 +1,29 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useThemeContext } from "@/context/theme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
+const PURPLE = "#a78bfa";
+
 export default function SettingsScreen() {
   const router = useRouter();
-  const systemScheme: string = "light"; // placeholder — use useColorScheme() or app state if available
+  const { preference, setPreference, colorScheme } = useThemeContext();
+  const dark = colorScheme === "dark";
+  const useDarkMode = preference === "dark";
 
-  const [useDarkMode, setUseDarkMode] = useState(systemScheme === "dark");
+  const switchProps = {
+    trackColor: { false: "#e5e7eb", true: PURPLE },
+    thumbColor: dark ? "#fff" : "#fff",
+    ios_backgroundColor: "#e5e7eb",
+  };
+
+  function setUseDarkMode(enabled: boolean) {
+    setPreference(enabled ? "dark" : "system");
+  }
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [useMetric, setUseMetric] = useState(true);
   const [syncFavorites, setSyncFavorites] = useState(false);
@@ -71,8 +84,7 @@ export default function SettingsScreen() {
             try {
               setSigningOut(true);
               await supabaseSignOut();
-              // replace navigation to login so user can't go back
-              router.replace("/(auth)/login");
+              // onAuthStateChange in _layout.tsx handles the redirect to "/"
             } catch (err: any) {
               Alert.alert("Sign out failed", err?.message || String(err));
             } finally {
@@ -99,7 +111,7 @@ export default function SettingsScreen() {
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Dark mode</ThemedText>
-            <Switch value={useDarkMode} onValueChange={setUseDarkMode} />
+            <Switch {...switchProps} value={useDarkMode} onValueChange={setUseDarkMode} />
           </View>
 
           <View style={styles.row}>
@@ -116,12 +128,12 @@ export default function SettingsScreen() {
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Enable notifications</ThemedText>
-            <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
+            <Switch {...switchProps} value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
           </View>
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Sync favorites</ThemedText>
-            <Switch value={syncFavorites} onValueChange={setSyncFavorites} />
+            <Switch {...switchProps} value={syncFavorites} onValueChange={setSyncFavorites} />
           </View>
         </View>
 

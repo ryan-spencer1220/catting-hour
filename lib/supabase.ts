@@ -5,4 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://qbpneukurthgcqnlzdjk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_NjR1qy_JZgHZyGExmTCQHw_a7U3zdQX";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    detectSessionInUrl: false,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});

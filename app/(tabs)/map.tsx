@@ -1,10 +1,9 @@
-import bundledCats from "@/data/cats.json";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 
@@ -50,7 +49,7 @@ export default function MapScreen() {
             setLocation(loc);
           }
         }
-      } catch (e) {
+      } catch {
         setLocation(false);
       } finally {
         if (mounted) setLocationResolved(true);
@@ -62,32 +61,29 @@ export default function MapScreen() {
     };
   }, []);
 
-  // fetch cats from Supabase
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const rows = await fetchAllCats();
-        if (!mounted) return;
-        setCats(rows);
-      } catch (e) {
-        // keep bundled cats as fallback
-        console.warn("Failed to load cats from Supabase", e);
-      }
-    })();
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      (async () => {
+        try {
+          const rows = await fetchAllCats();
+          if (mounted) setCats(rows);
+        } catch (e) {
+          console.warn("Failed to load cats from Supabase", e);
+          if (mounted) setCats([]);
+        }
+      })();
+      return () => { mounted = false; };
+    }, [])
+  );
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const defaultCenter = [-122.431297, 37.773972];
-  const center = location && location !== false ? [location.coords.longitude, location.coords.latitude] : defaultCenter;
+  const centerLng = location && location !== false ? location.coords.longitude : -122.431297;
+  const centerLat = location && location !== false ? location.coords.latitude : 37.773972;
 
   const styleUrl = colorScheme === "dark" ? "mapbox://styles/mapbox/dark-v10" : "mapbox://styles/mapbox/streets-v11";
 
   const html = useMemo(() => {
-    const initialMarkers = JSON.stringify(cats || bundledCats || []);
+    const initialMarkers = JSON.stringify(cats ?? []);
     return `
       <!doctype html>
       <html>
@@ -113,12 +109,13 @@ export default function MapScreen() {
               justify-content: center;
               background: rgba(255,255,255,0.95);
               box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-              font-size: 18px;
             }
             .cat-marker.dark {
-              background: rgba(17,24,39,0.95);
-              color: #fff;
+              background: rgba(167,139,250,0.2);
+              box-shadow: 0 1px 6px rgba(167,139,250,0.4);
+              border: 2px solid #a78bfa;
             }
+            .cat-marker svg { display: block; }
           </style>
         </head>
         <body>
@@ -138,7 +135,7 @@ export default function MapScreen() {
                   post('webgl_unsupported');
 
                   var fallbackUrl = 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/' +
-                    '${center[0]},${center[1]},12/1024x1024?access_token=${MAPBOX_ACCESS_TOKEN}';
+                    '${centerLng},${centerLat},12/1024x1024?access_token=${MAPBOX_ACCESS_TOKEN}';
 
                   var img = document.createElement('img');
                   img.id = 'fallback';
@@ -159,7 +156,7 @@ export default function MapScreen() {
                 var map = new mapboxgl.Map({
                   container: 'map',
                   style: '${styleUrl}',
-                  center: [${center[0]}, ${center[1]}],
+                  center: [${centerLng}, ${centerLat}],
                   zoom: 12
                 });
 
@@ -167,6 +164,9 @@ export default function MapScreen() {
 
                 // Keep a reference to the last marker so clicks replace it
                 window._lastCatMarker = null;
+
+                var PAW_COLOR = '${colorScheme === "dark" ? "#a78bfa" : "#374151"}';
+                var PAW_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="22" ry="18" fill="' + PAW_COLOR + '"/><ellipse cx="22" cy="46" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="40" cy="35" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="60" cy="35" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="78" cy="46" rx="11" ry="13" fill="' + PAW_COLOR + '"/></svg>';
 
                 function createCatMarker(lngLat, opts) {
                   // remove existing
@@ -178,7 +178,7 @@ export default function MapScreen() {
 
                   var el = document.createElement('div');
                   el.className = 'cat-marker' + (${colorScheme === "dark" ? "' dark'" : "''"});
-                  el.innerHTML = '🐾';
+                  el.innerHTML = PAW_SVG;
 
                   var marker = new mapboxgl.Marker(el)
                     .setLngLat([lngLat.lng || lngLat[0], lngLat.lat || lngLat[1]])
@@ -203,7 +203,7 @@ export default function MapScreen() {
                         // create marker element with click handler to open view
                         var el = document.createElement('div');
                         el.className = 'cat-marker' + (${colorScheme === "dark" ? "' dark'" : "''"});
-                        el.innerHTML = '🐾';
+                        el.innerHTML = PAW_SVG;
                         // attach click handler to notify React Native to open view for this cat
                         (function(id){
                           el.addEventListener('click', function(e){
@@ -232,9 +232,7 @@ export default function MapScreen() {
                 });
 
                 map.on('click', function (e) {
-                  var coords = e.lngLat;
-                  createCatMarker(coords, { trackAsLast: true, popupText: 'A cat was spotted here 🐾' });
-                  post('click', { coords: coords });
+                  post('click', { coords: e.lngLat });
                 });
 
                 map.on('error', function(err) {
@@ -242,7 +240,7 @@ export default function MapScreen() {
                 });
 
               } catch (err) {
-                try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'html_error', message: String(err) })); } catch(e){}
+                try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'html_error', message: String(err) })); } catch{}
                 var mapEl = document.getElementById('map');
                 mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;">Map failed to initialize</div>';
               }
@@ -251,7 +249,7 @@ export default function MapScreen() {
         </body>
       </html>
     `;
-  }, [MAPBOX_ACCESS_TOKEN, colorScheme, center[0], center[1], styleUrl, cats]);
+  }, [colorScheme, styleUrl, centerLng, centerLat, cats]);
 
   if (!locationResolved) {
     return (

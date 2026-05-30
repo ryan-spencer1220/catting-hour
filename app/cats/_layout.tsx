@@ -1,10 +1,14 @@
+import { useThemeContext } from "@/context/theme";
 import { Slot } from "expo-router";
 import React from "react";
-
-// Hide the 'cats' folder from the bottom tab bar so its routes are accessible
-// via navigation but not shown as a tab (prevents an extra tab/placeholder).
-export const unstable_settings = { tabBarButton: () => null };
+import { View } from "react-native";
 
 export default function CatsLayout() {
-  return <Slot />;
+  const { colorScheme } = useThemeContext();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colorScheme === "dark" ? "#0f1720" : "#fff" }}>
+      <Slot />
+    </View>
+  );
 }

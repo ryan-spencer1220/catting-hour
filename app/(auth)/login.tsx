@@ -1,13 +1,18 @@
-// filepath: /Users/macbookpro/catting-hour/app/(auth)/login.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signInWithEmail } from "@/lib/auth";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
+const PURPLE = "#a78bfa";
+
 export default function LoginScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const dark = colorScheme === "dark";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,9 +21,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signInWithEmail(email, password);
-      // navigate to map after successful sign in
-      router.replace("/map");
-      // TODO: navigate to app flow
+      router.replace("/(tabs)/map");
     } catch (e: any) {
       Alert.alert("Sign in failed", e.message || String(e));
     } finally {
@@ -26,23 +29,44 @@ export default function LoginScreen() {
     }
   }
 
+  const inputStyle = [styles.input, dark && styles.inputDark];
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.inner}>
-        <ThemedText type="title">Sign in</ThemedText>
+        <ThemedText type="title" style={styles.heading}>Sign in</ThemedText>
 
         <TextInput
-          style={styles.input}
+          style={inputStyle}
           placeholder="Email"
+          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          autoCorrect={false}
         />
-        <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <TextInput
+          style={inputStyle}
+          placeholder="Password"
+          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
-        <TouchableOpacity style={styles.button} onPress={handleSignIn} disabled={loading}>
+        <TouchableOpacity style={[styles.button, dark && styles.buttonDark]} onPress={handleSignIn} disabled={loading}>
           <ThemedText style={styles.buttonText}>{loading ? "Signing in..." : "Sign in"}</ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/forgot-password")}>
+          <ThemedText type="link">Forgot password?</ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/register")}>
+          <ThemedText type="link">{"Don't have an account? Register"}</ThemedText>
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -51,8 +75,30 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  inner: { padding: 20 },
-  input: { borderWidth: 1, borderColor: "#e5e7eb", padding: 12, borderRadius: 8, marginTop: 12 },
-  button: { marginTop: 16, padding: 12, backgroundColor: "#0a7ea4", borderRadius: 8, alignItems: "center" },
-  buttonText: { color: "#fff" },
+  inner: { padding: 24 },
+  heading: { marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    color: "#111827",
+    backgroundColor: "#fff",
+  },
+  inputDark: {
+    borderColor: "#374151",
+    backgroundColor: "#1a2535",
+    color: "#fff",
+  },
+  button: {
+    marginTop: 20,
+    padding: 14,
+    backgroundColor: "#111827",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  buttonDark: { backgroundColor: PURPLE },
+  buttonText: { color: "#fff", fontWeight: "600" },
+  linkRow: { marginTop: 16, alignItems: "center" },
 });

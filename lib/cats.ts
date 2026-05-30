@@ -11,6 +11,7 @@ export type Cat = {
   lng?: number;
   image?: string | null;
   createdAt?: string | null;
+  ownerName?: string | null;
 };
 
 function mapRow(row: any): Cat | null {
@@ -26,6 +27,7 @@ function mapRow(row: any): Cat | null {
     lng: row.lng !== undefined ? Number(row.lng) : undefined,
     image: row.image ?? null,
     createdAt: row.created_at ?? row.createdAt ?? null,
+    ownerName: row.owner_name ?? null,
   };
 }
 
@@ -42,11 +44,15 @@ export async function fetchCatById(id: string): Promise<Cat | null> {
 }
 
 export async function createCat(payload: Partial<Cat>): Promise<Cat> {
-  // try to include the current authenticated user as the owner when available
   let ownerId: string | null = null;
+  let ownerName: string | null = null;
   try {
     const { data: userData } = await supabase.auth.getUser();
-    ownerId = (userData as any)?.user?.id ?? null;
+    const user = (userData as any)?.user;
+    ownerId = user?.id ?? null;
+    ownerName = user?.user_metadata?.username
+      ?? user?.email?.split("@")[0]
+      ?? null;
   } catch (e) {
     ownerId = null;
   }
@@ -62,6 +68,7 @@ export async function createCat(payload: Partial<Cat>): Promise<Cat> {
     image: payload.image ?? null,
     created_at: new Date().toISOString(),
     owner: ownerId,
+    owner_name: ownerName,
   };
 
   const { data, error } = await supabase.from("cats").insert(insert).select().maybeSingle();
@@ -81,35 +88,33 @@ export async function updateCat(id: string, changes: Partial<Cat>): Promise<Cat 
 }
 
 export async function deleteCat(id: string): Promise<void> {
-  const { error } = await supabase.from("cats").delete().eq("id", id);
+  const { error, count } = await supabase
+    .from("cats")
+    .delete({ count: "exact" })
+    .eq("id", id);
   if (error) throw error;
+  if (count === 0) throw new Error("Could not delete — cat not found.");
 }
 
-// Upload an image URI (local file or remote) to the 'cat-images' storage bucket and return a public URL.
+// Upload a local image URI to the 'cat-images' storage bucket and return a public URL.
 export async function uploadImage(uri: string): Promise<string> {
   if (!uri) throw new Error("No image uri provided");
 
-  // fetch the file data from the given URI
-  const response = await fetch(uri);
-  const blob = await response.blob();
-
-  // derive an extension from the URI if possible
-  const extMatch = uri.split(".").pop()?.split("?")[0];
+  const extMatch = uri.split(".").pop()?.split("?")[0]?.toLowerCase();
   const ext = extMatch && extMatch.length <= 5 ? extMatch : "jpg";
-
+  const contentType = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const bucket = "cat-images";
-  const path = fileName;
 
-  // upload the blob to Supabase Storage
-  const { data, error } = await supabase.storage.from(bucket).upload(path, blob as any, {
-    // contentType may be empty on some platforms; supply blob.type when available
-    contentType: (blob as any).type || undefined,
-    upsert: false,
-  });
+  // React Native's fetch+blob returns 0 bytes for local URIs.
+  // Using FormData with the native blob descriptor reads the file correctly.
+  const formData = new FormData();
+  formData.append("file", { uri, name: fileName, type: contentType } as any);
+
+  const { error } = await supabase.storage
+    .from("cat-images")
+    .upload(fileName, formData as any, { contentType, upsert: false });
   if (error) throw error;
 
-  // get public URL for the uploaded file (bucket must be public)
-  const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path);
-  return publicData.publicUrl;
+  const { data } = supabase.storage.from("cat-images").getPublicUrl(fileName);
+  return data.publicUrl;
 }

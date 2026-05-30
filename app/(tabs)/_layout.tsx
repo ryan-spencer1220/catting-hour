@@ -5,22 +5,16 @@ import React from "react";
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
-  const activeTint = colorScheme === "dark" ? "#fff" : "#111827";
+  const activeTint = colorScheme === "dark" ? "#a78bfa" : "#111827";
   const bg = colorScheme === "dark" ? "#0b1220" : "#fff";
 
   return (
     <Tabs
-      // Use a function so we can hide specific auto-generated routes (like the nested `cats` folder)
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: activeTint,
-        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6", display: "flex", justifyContent: "space-around", paddingHorizontal: 8 },
-        // Hide the auto-generated 'cats' tab (exactly 'cats' or generated names such as 'cats_index' or 'cats_create')
-        tabBarButton:
-          typeof route.name === "string" && (route.name === "cats" || route.name === "cats_index" || route.name.startsWith("cats_"))
-            ? () => null
-            : undefined,
-      })}
+        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6" },
+      }}
     >
       <Tabs.Screen
         name="map"
@@ -41,8 +35,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="my-cats"
         options={{
-          title: "My Cats",
-          tabBarIcon: ({ color, size }) => <Ionicons name="paw" color={color} size={size} />,
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
         }}
       />
 
@@ -54,7 +48,8 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* The 'cats' folder routes (e.g. /cats/create) are intentionally not added as a tab. */}
+      {/* Exclude profile from the tab bar */}
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

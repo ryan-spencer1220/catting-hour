@@ -1,4 +1,4 @@
-import bundledCats from "@/data/cats.json";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -6,6 +6,8 @@ import { ActivityIndicator, FlatList, Image, Pressable, SafeAreaView, StyleSheet
 
 export default function RecentlyScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const dark = colorScheme === "dark";
 
   const [cats, setCats] = useState<any[] | null>(null);
   useEffect(() => {
@@ -15,9 +17,8 @@ export default function RecentlyScreen() {
         const rows = await fetchAllCats();
         if (!mounted) return;
         setCats(rows);
-      } catch (e) {
-        // fallback to bundled
-        setCats((bundledCats as any[]) || []);
+      } catch {
+        if (mounted) setCats([]);
       }
     })();
     return () => {
@@ -35,10 +36,10 @@ export default function RecentlyScreen() {
 
   function renderItem({ item }: { item: any }) {
     return (
-      <Pressable style={styles.card} onPress={() => router.push(`/cats/${item.id}`)}>
-        {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : <View style={styles.imagePlaceholder} />}
+      <Pressable style={[styles.card, dark && styles.darkCard]} onPress={() => router.push(`/cats/${item.id}`)}>
+        {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : <View style={[styles.imagePlaceholder, dark && styles.darkPlaceholder]} />}
         <View style={styles.info}>
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={[styles.name, dark && styles.darkText]}>{item.name}</Text>
           <Text style={styles.meta}>
             {item.type} · {item.temperament}
           </Text>
@@ -49,9 +50,9 @@ export default function RecentlyScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, dark && styles.darkBg]}>
       {cats === null ? (
-        <ActivityIndicator />
+        <ActivityIndicator color={dark ? "#fff" : "#111"} />
       ) : (
         <FlatList
           data={sorted}
@@ -67,11 +68,15 @@ export default function RecentlyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
+  darkBg: { backgroundColor: "#0f1720" },
+  darkText: { color: "#fff" },
   card: { flexDirection: "row", alignItems: "center", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8 },
+  darkCard: { backgroundColor: "#1a2535" },
   image: { width: 72, height: 72, borderRadius: 8, marginRight: 12 },
   imagePlaceholder: { width: 72, height: 72, borderRadius: 8, marginRight: 12, backgroundColor: "#e5e7eb" },
+  darkPlaceholder: { backgroundColor: "#2d3f55" },
   info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: "700" },
+  name: { fontSize: 16, fontWeight: "700", color: "#111827" },
   meta: { color: "#6b7280", marginTop: 4 },
   time: { color: "#9ca3af", marginTop: 6, fontSize: 12 },
   sep: { height: 12 },

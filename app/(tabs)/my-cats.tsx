@@ -1,74 +1,474 @@
-import { fetchAllCats } from "@/lib/cats";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { uploadImage } from "@/lib/cats";
+import { supabase } from "@/lib/supabase";
+import { signOut as supabaseSignOut } from "@/lib/auth";
+import * as ImagePicker from "expo-image-picker";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function MyCatsScreen() {
+const PURPLE = "#a78bfa";
+
+function timeAgo(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+type Stats = {
+  totalCats: number;
+  myCats: number;
+  myCheckins: number;
+  lastCatAdded: { name: string; createdAt: string } | null;
+  lastSeen: { catName: string; createdAt: string } | null;
+};
+
+export default function ProfileScreen() {
+  const colorScheme = useColorScheme();
+  const dark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [cats, setCats] = useState<any[] | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const rows = await fetchAllCats();
-        if (!mounted) return;
-        setCats(rows);
-      } catch (e) {
-        console.warn("Failed to load cats from Supabase", e);
-        if (mounted) setCats([]);
+  const bg = dark ? "#0f1720" : "#f5f5f7";
+  const card = dark ? "#1a2535" : "#fff";
+  const textPrimary = dark ? "#fff" : "#111827";
+  const textMuted = dark ? "#6b7280" : "#9ca3af";
+  const divider = dark ? "#1e2d3d" : "#e5e7eb";
+  const inputBg = dark ? "#0f1720" : "#f9fafb";
+  const inputBorder = dark ? "#374151" : "#e5e7eb";
+
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const [editingCity, setEditingCity] = useState(false);
+  const [cityDraft, setCityDraft] = useState("");
+  const [savingCity, setSavingCity] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+
+      async function load() {
+        // Load user — redirect to login if not authenticated
+        try {
+          const { data } = await supabase.auth.getUser();
+          const u = data?.user ?? null;
+          if (mounted) {
+            if (!u) router.replace("/");
+            else setUser(u);
+          }
+        } catch {
+          if (mounted) router.replace("/");
+        } finally {
+          if (mounted) setLoading(false);
+        }
+
+        // Load stats
+        try {
+          const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
+
+          const [
+            { count: totalCats },
+            { count: myCats },
+            { count: myCheckins },
+            { data: lastCatRow },
+            { data: lastSeenRow },
+          ] = await Promise.all([
+            supabase.from("cats").select("*", { count: "exact", head: true }),
+            userId
+              ? supabase.from("cats").select("*", { count: "exact", head: true }).eq("owner", userId)
+              : Promise.resolve({ count: 0 }),
+            userId
+              ? supabase.from("checkins").select("*", { count: "exact", head: true }).eq("author", userId)
+              : Promise.resolve({ count: 0 }),
+            supabase
+              .from("cats")
+              .select("name, created_at")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("checkins")
+              .select("created_at, cat_id, cats(name)")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          ]);
+
+          if (mounted) {
+            setStats({
+              totalCats: totalCats ?? 0,
+              myCats: myCats ?? 0,
+              myCheckins: myCheckins ?? 0,
+              lastCatAdded: lastCatRow
+                ? { name: lastCatRow.name, createdAt: lastCatRow.created_at }
+                : null,
+              lastSeen: lastSeenRow
+                ? {
+                    catName: (lastSeenRow as any).cats?.name ?? "Unknown",
+                    createdAt: lastSeenRow.created_at,
+                  }
+                : null,
+            });
+          }
+        } catch {
+          if (mounted) setStats(null);
+        } finally {
+          if (mounted) setStatsLoading(false);
+        }
       }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
-  if (cats === null)
-    return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator />
-      </SafeAreaView>
-    );
+      load();
+      return () => { mounted = false; };
+    }, [])
+  );
 
-  if (!cats.length) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text>No cats logged yet.</Text>
-      </SafeAreaView>
-    );
+  async function handlePickAvatar() {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Photo library access is needed to set a profile photo.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setUploadingAvatar(true);
+      const url = await uploadImage(uri);
+      await supabase.auth.updateUser({ data: { avatar_url: url } });
+      setUser((prev: any) => prev
+        ? { ...prev, user_metadata: { ...prev.user_metadata, avatar_url: url } }
+        : prev
+      );
+    } catch (e: any) {
+      Alert.alert("Upload failed", e?.message || String(e));
+    } finally {
+      setUploadingAvatar(false);
+    }
   }
 
+  async function saveCity() {
+    setSavingCity(true);
+    try {
+      const trimmed = cityDraft.trim();
+      await supabase.auth.updateUser({ data: { city: trimmed || null } });
+      setUser((prev: any) => prev
+        ? { ...prev, user_metadata: { ...prev.user_metadata, city: trimmed || null } }
+        : prev
+      );
+      setEditingCity(false);
+    } catch (e: any) {
+      Alert.alert("Failed to save", e?.message || String(e));
+    } finally {
+      setSavingCity(false);
+    }
+  }
+
+  function startEditCity() {
+    setCityDraft(user?.user_metadata?.city ?? "");
+    setEditingCity(true);
+  }
+
+  function handleSignOut() {
+    Alert.alert("Sign out", "Sign out of your account?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: async () => {
+          setSigningOut(true);
+          try {
+            await supabaseSignOut();
+          } catch (e: any) {
+            Alert.alert("Sign out failed", e?.message || String(e));
+          } finally {
+            setSigningOut(false);
+          }
+        },
+      },
+    ]);
+  }
+
+  const displayName = user?.user_metadata?.username ?? user?.email?.split("@")[0] ?? "";
+  const avatarUrl = user?.user_metadata?.avatar_url ?? null;
+  const city = user?.user_metadata?.city ?? null;
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+    : null;
+
+  const initials = displayName.slice(0, 2).toUpperCase();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        data={cats}
-        keyExtractor={(i) => String(i.id)}
-        renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => router.push(`/cats/${item.id}`)}>
-            {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : <View style={styles.imagePlaceholder} />}
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {item.type} · {item.temperament}
-              </Text>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: bg }]}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 32) }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── Header band ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+
+        {/* Avatar */}
+        <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+          {uploadingAvatar ? (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <ActivityIndicator color="#fff" />
             </View>
-          </Pressable>
+          ) : avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.initials}>{initials}</Text>
+            </View>
+          )}
+          <View style={styles.avatarEditBadge}>
+            <Text style={styles.avatarEditIcon}>✎</Text>
+          </View>
+        </Pressable>
+
+        {loading ? (
+          <ActivityIndicator color="#fff" style={{ marginTop: 16 }} />
+        ) : (
+          <>
+            <Text style={styles.displayName}>{displayName}</Text>
+            {user?.email ? (
+              <Text style={styles.email}>{user.email}</Text>
+            ) : null}
+
+            {/* City */}
+            {editingCity ? (
+              <View style={styles.cityEditRow}>
+                <TextInput
+                  style={[styles.cityInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+                  value={cityDraft}
+                  onChangeText={setCityDraft}
+                  placeholder="Your city"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={saveCity}
+                />
+                <Pressable style={styles.citySaveBtn} onPress={saveCity} disabled={savingCity}>
+                  <Text style={styles.citySaveBtnText}>{savingCity ? "…" : "Save"}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable style={styles.cityRow} onPress={startEditCity}>
+                <Text style={styles.cityText}>
+                  {city ? `📍 ${city}` : "📍 Add location"}
+                </Text>
+              </Pressable>
+            )}
+
+            {memberSince ? (
+              <Text style={styles.memberSince}>Member since {memberSince}</Text>
+            ) : null}
+          </>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        contentContainerStyle={{ padding: 12 }}
-      />
-    </SafeAreaView>
+      </View>
+
+      {/* ── Stats ── */}
+      <View style={{ paddingHorizontal: 16, marginTop: 24, gap: 12 }}>
+
+        {/* Your activity */}
+        <Text style={[styles.sectionLabel, { color: textMuted }]}>Your activity</Text>
+        <View style={[styles.statsGrid, { gap: 12 }]}>
+          <StatCard
+            icon="🐾"
+            label="Cats logged"
+            value={statsLoading ? null : String(stats?.myCats ?? 0)}
+            card={card}
+            textPrimary={textPrimary}
+            textMuted={textMuted}
+          />
+          <StatCard
+            icon="✅"
+            label="Check-ins"
+            value={statsLoading ? null : String(stats?.myCheckins ?? 0)}
+            card={card}
+            textPrimary={textPrimary}
+            textMuted={textMuted}
+          />
+        </View>
+
+        {/* Community */}
+        <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Community</Text>
+        <View style={[styles.statsGrid, { gap: 12 }]}>
+          <StatCard
+            icon="🌍"
+            label="Total cats"
+            value={statsLoading ? null : String(stats?.totalCats ?? 0)}
+            card={card}
+            textPrimary={textPrimary}
+            textMuted={textMuted}
+          />
+          <StatCard
+            icon="🕐"
+            label="Last seen"
+            value={statsLoading ? null : stats?.lastSeen ? timeAgo(stats.lastSeen.createdAt) : "—"}
+            sub={stats?.lastSeen?.catName}
+            card={card}
+            textPrimary={textPrimary}
+            textMuted={textMuted}
+          />
+        </View>
+
+        {stats?.lastCatAdded ? (
+          <View style={[styles.wideCard, { backgroundColor: card }]}>
+            <Text style={styles.statIcon}>📅</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statLabel, { color: textMuted }]}>Last cat added</Text>
+              <Text style={[styles.statValue, { color: textPrimary }]}>
+                {timeAgo(stats.lastCatAdded.createdAt)}
+              </Text>
+              <Text style={[styles.statSub, { color: textMuted }]}>{stats.lastCatAdded.name}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Account actions */}
+        <View style={[styles.divider, { backgroundColor: divider, marginTop: 8 }]} />
+
+        <Pressable
+          style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          <Text style={styles.signOutText}>{signingOut ? "Signing out…" : "Sign out"}</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
+
+function StatCard({
+  icon, label, value, sub, card, textPrimary, textMuted,
+}: {
+  icon: string;
+  label: string;
+  value: string | null;
+  sub?: string;
+  card: string;
+  textPrimary: string;
+  textMuted: string;
+}) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: card }]}>
+      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={[styles.statLabel, { color: textMuted }]}>{label}</Text>
+      {value === null ? (
+        <ActivityIndicator size="small" color={textMuted} style={{ marginTop: 4 }} />
+      ) : (
+        <Text style={[styles.statValue, { color: textPrimary }]}>{value}</Text>
+      )}
+      {sub ? <Text style={[styles.statSub, { color: textMuted }]}>{sub}</Text> : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  card: { flexDirection: "row", alignItems: "center", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8 },
-  image: { width: 72, height: 72, borderRadius: 8, marginRight: 12 },
-  imagePlaceholder: { width: 72, height: 72, borderRadius: 8, marginRight: 12, backgroundColor: "#e5e7eb" },
-  info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: "700" },
-  meta: { color: "#6b7280", marginTop: 4 },
+  screen: { flex: 1 },
+
+  header: {
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+
+  avatarWrap: { position: "relative", marginBottom: 14 },
+  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)" },
+  avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
+  initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
+  avatarEditBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: PURPLE,
+  },
+  avatarEditIcon: { fontSize: 13, color: PURPLE, lineHeight: 18 },
+
+  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
+  email: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 3, textAlign: "center" },
+
+  cityRow: { marginTop: 8 },
+  cityText: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
+  cityEditRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  cityInput: {
+    flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7,
+    fontSize: 14,
+  },
+  citySaveBtn: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  citySaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  memberSince: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 },
+
+  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  statsGrid: { flexDirection: "row" },
+
+  statCard: {
+    flex: 1,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "flex-start",
+    minHeight: 90,
+  },
+  wideCard: {
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  statIcon: { fontSize: 22, marginBottom: 6 },
+  statLabel: { fontSize: 12, fontWeight: "500", marginBottom: 2 },
+  statValue: { fontSize: 20, fontWeight: "800" },
+  statSub: { fontSize: 11, marginTop: 2 },
+
+  divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
+
+  signOutBtn: {
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+  },
+  signOutText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+
 });

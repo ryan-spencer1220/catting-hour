@@ -1,19 +1,33 @@
+import { SelectField } from "@/components/select-field";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { createCat, uploadImage } from "@/lib/cats";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import React, { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+
+const CAT_TYPES = [
+  "Domestic Shorthair", "Domestic Longhair", "Tabby", "Calico", "Tuxedo",
+  "Tortoiseshell", "Siamese", "Persian", "Maine Coon", "Ragdoll",
+  "Bengal", "Sphynx", "Scottish Fold", "Unknown",
+];
+
+const CAT_TEMPERAMENTS = [
+  "Friendly", "Shy", "Playful", "Affectionate", "Independent",
+  "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
+];
+
+const PURPLE = "#a78bfa";
 
 export default function CreateCat() {
   const params = useLocalSearchParams<{ lng?: string; lat?: string }>();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const dark = colorScheme === "dark";
+
   const lng = parseFloat(params.lng ?? "0");
   const lat = parseFloat(params.lat ?? "0");
-
-  useEffect(() => {
-    // log mounting and params so we can see if the screen is being reached
-    // eslint-disable-next-line no-console
-    console.log("CreateCat mounted", { params, lng, lat });
-  }, [params]);
 
   const [name, setName] = useState("");
   const [type, setType] = useState("Unknown");
@@ -21,83 +35,143 @@ export default function CreateCat() {
   const [indoor, setIndoor] = useState(true);
   const [notes, setNotes] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  async function pickImage() {
+  async function openCamera() {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission required", "Permission to access the photo library is required to add a picture.");
+        Alert.alert("Permission required", "Camera access is needed to take a photo.");
         return;
       }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-
+      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
       if (!result.canceled) {
-        // expo-image-picker v14+ returns { assets: [{ uri }] } on web/native; older returns { cancelled, uri }
-        // handle both shapes
-        // @ts-ignore
-        const uri = (result.assets && result.assets[0] && result.assets[0].uri) || (result as any).uri;
+        const uri = result.assets?.[0]?.uri;
         if (uri) setImageUri(uri);
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
+      console.warn("Camera error", err);
+    }
+  }
+
+  async function openLibrary() {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Photo library access is needed to add a picture.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 0.8 });
+      if (!result.canceled) {
+        const uri = result.assets?.[0]?.uri;
+        if (uri) setImageUri(uri);
+      }
+    } catch (err) {
       console.warn("Image pick error", err);
     }
   }
 
-  function submit() {
-    // For now just log the entry and go back
-    // Later we'll persist to backend or local store
-    // eslint-disable-next-line no-console
-    console.log("Create cat", { name, type, temperament, indoor, notes, lng, lat, imageUri });
-    router.back();
+  function pickImage() {
+    Alert.alert("Add photo", "Choose a source", [
+      { text: "Take photo", onPress: () => setTimeout(openCamera, 300) },
+      { text: "Choose from library", onPress: () => setTimeout(openLibrary, 300) },
+      { text: "Cancel", style: "cancel" },
+    ]);
   }
 
+  async function submit() {
+    if (!name.trim()) {
+      Alert.alert("Name required", "Please give this cat a name.");
+      return;
+    }
+    setSaving(true);
+    try {
+      let imageUrl: string | null = null;
+      if (imageUri) {
+        imageUrl = await uploadImage(imageUri);
+      }
+      await createCat({ name: name.trim(), type, temperament, indoor, notes, lat, lng, image: imageUrl });
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Save failed", e?.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputStyle = [styles.input, dark && styles.inputDark];
+  const labelStyle = [styles.label, dark && styles.labelDark];
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, dark && styles.safeDark]}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.debugBanner}>
-          <Text style={styles.debugText}>Create screen — params: {JSON.stringify(params)}</Text>
-        </View>
-        <Text style={styles.heading}>Add a cat</Text>
-        <Text style={styles.label}>Location</Text>
+        <Text style={[styles.heading, dark && styles.headingDark]}>Add a cat</Text>
+
+        <Text style={labelStyle}>Location</Text>
         <Text style={styles.value}>
           {lat.toFixed(6)}, {lng.toFixed(6)}
         </Text>
 
-        <Text style={styles.label}>Name</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Cat name" />
+        <Text style={labelStyle}>Name</Text>
+        <TextInput
+          style={inputStyle}
+          value={name}
+          onChangeText={setName}
+          placeholder="Cat name"
+          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+        />
 
-        <Text style={styles.label}>Type</Text>
-        <TextInput style={styles.input} value={type} onChangeText={setType} placeholder="Breed or type" />
+        <Text style={labelStyle}>Type</Text>
+        <SelectField
+          value={type}
+          options={CAT_TYPES}
+          onChange={setType}
+          dark={dark}
+          placeholder="Select type…"
+        />
 
-        <Text style={styles.label}>Temperament</Text>
-        <TextInput style={styles.input} value={temperament} onChangeText={setTemperament} placeholder="Friendly / Shy / Aggressive" />
+        <Text style={labelStyle}>Temperament</Text>
+        <SelectField
+          value={temperament}
+          options={CAT_TEMPERAMENTS}
+          onChange={setTemperament}
+          dark={dark}
+          placeholder="Select temperament…"
+        />
 
         <View style={styles.row}>
-          <Text style={styles.label}>Indoor</Text>
-          <Switch value={indoor} onValueChange={setIndoor} />
+          <Text style={labelStyle}>Indoor</Text>
+          <Switch
+            value={indoor}
+            onValueChange={setIndoor}
+            trackColor={{ false: "#e5e7eb", true: PURPLE }}
+            thumbColor="#fff"
+            ios_backgroundColor="#e5e7eb"
+          />
         </View>
 
-        <Text style={styles.label}>Photo</Text>
-        <Pressable style={styles.photoButton} onPress={pickImage}>
-          <Text style={styles.photoButtonText}>{imageUri ? "Change photo" : "Add photo"}</Text>
+        <Text style={labelStyle}>Photo</Text>
+        <Pressable style={[styles.photoButton, dark && styles.photoButtonDark]} onPress={pickImage}>
+          <Text style={[styles.photoButtonText, dark && styles.photoButtonTextDark]}>{imageUri ? "Change photo" : "Add photo"}</Text>
         </Pressable>
         {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
 
-        <Text style={styles.label}>Notes</Text>
-        <TextInput style={[styles.input, styles.multiline]} value={notes} onChangeText={setNotes} placeholder="Any notes" multiline />
+        <Text style={labelStyle}>Notes</Text>
+        <TextInput
+          style={[inputStyle, styles.multiline]}
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Any notes"
+          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+          multiline
+        />
 
-        <Pressable style={styles.button} onPress={submit}>
-          <Text style={styles.buttonText}>Save</Text>
+        <Pressable style={[styles.button, dark && styles.buttonDark]} onPress={submit} disabled={saving}>
+          <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
         </Pressable>
 
-        <Pressable style={[styles.button, styles.cancel]} onPress={() => router.back()}>
-          <Text style={[styles.buttonText, styles.cancelText]}>Cancel</Text>
+        <Pressable style={[styles.cancel, dark && styles.cancelDark]} onPress={() => router.back()}>
+          <Text style={[styles.cancelText, dark && styles.cancelTextDark]}>Cancel</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -106,20 +180,39 @@ export default function CreateCat() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#fff" },
+  safeDark: { backgroundColor: "#0f1720" },
   container: { padding: 20, paddingTop: 40, flexGrow: 1, alignItems: "center" },
-  debugBanner: { width: "100%", backgroundColor: "#ffeb3b", padding: 8, borderRadius: 6, marginBottom: 12, alignItems: "center" },
-  debugText: { color: "#111", fontWeight: "700" },
-  heading: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  label: { marginTop: 12, marginBottom: 6, color: "#374151", fontWeight: "600" },
-  value: { color: "#6b7280" },
-  input: { borderWidth: 1, borderColor: "#e5e7eb", padding: 10, borderRadius: 8, backgroundColor: "#fff" },
+  heading: { fontSize: 22, fontWeight: "700", marginBottom: 12, color: "#111827" },
+  headingDark: { color: "#fff" },
+  label: { marginTop: 12, marginBottom: 6, color: "#374151", fontWeight: "600", alignSelf: "flex-start" },
+  labelDark: { color: "#d1d5db" },
+  value: { color: "#6b7280", alignSelf: "flex-start" },
+  input: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    color: "#111827",
+  },
+  inputDark: {
+    borderColor: "#374151",
+    backgroundColor: "#1a2535",
+    color: "#fff",
+  },
   multiline: { minHeight: 100, textAlignVertical: "top" },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
-  photoButton: { backgroundColor: "#efefef", padding: 10, borderRadius: 8, marginTop: 6, alignItems: "center" },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12, width: "100%" },
+  photoButton: { backgroundColor: "#f3f4f6", padding: 10, borderRadius: 8, marginTop: 6, alignItems: "center", width: "100%" },
+  photoButtonDark: { backgroundColor: "#1a2535" },
   photoButtonText: { color: "#111827" },
+  photoButtonTextDark: { color: "#d1d5db" },
   preview: { width: "100%", height: 200, borderRadius: 8, marginTop: 10 },
-  button: { backgroundColor: "#111827", padding: 14, borderRadius: 8, marginTop: 20, alignItems: "center" },
+  button: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 8, marginTop: 20, alignItems: "center" },
+  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
-  cancel: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827" },
-  cancelText: { color: "#111827" },
+  cancel: { width: "100%", backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827", padding: 14, borderRadius: 8, marginTop: 12, alignItems: "center" },
+  cancelDark: { borderColor: PURPLE },
+  cancelText: { color: "#111827", fontWeight: "600" },
+  cancelTextDark: { color: PURPLE },
 });
