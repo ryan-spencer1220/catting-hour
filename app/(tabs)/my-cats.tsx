@@ -2,6 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { uploadImage } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
 import { signOut as supabaseSignOut } from "@/lib/auth";
+import { ACHIEVEMENTS, getUnlockedAchievements } from "@/lib/achievements";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -61,6 +62,7 @@ export default function ProfileScreen() {
   const [savingCity, setSavingCity] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -135,6 +137,10 @@ export default function ProfileScreen() {
           if (mounted) setStatsLoading(false);
         }
       }
+
+      getUnlockedAchievements().then((ids) => {
+        if (mounted) setUnlockedIds(ids);
+      });
 
       load();
       return () => { mounted = false; };
@@ -350,6 +356,37 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
+        {/* Achievements */}
+        <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Achievements</Text>
+        <View style={styles.achievementsGrid}>
+          {ACHIEVEMENTS.map((a) => {
+            const unlocked = unlockedIds.includes(a.id);
+            return (
+              <View
+                key={a.id}
+                style={[
+                  styles.achievementBadge,
+                  { backgroundColor: card },
+                  !unlocked && styles.achievementLocked,
+                ]}
+              >
+                <Text style={[styles.achievementIcon, !unlocked && styles.achievementIconLocked]}>
+                  {unlocked ? a.icon : "🔒"}
+                </Text>
+                <Text
+                  style={[styles.achievementTitle, { color: unlocked ? textPrimary : textMuted }]}
+                  numberOfLines={2}
+                >
+                  {a.title}
+                </Text>
+                <Text style={[styles.achievementDesc, { color: textMuted }]} numberOfLines={2}>
+                  {a.description}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
         {/* Account actions */}
         <View style={[styles.divider, { backgroundColor: divider, marginTop: 8 }]} />
 
@@ -460,6 +497,25 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, fontWeight: "500", marginBottom: 2 },
   statValue: { fontSize: 20, fontWeight: "800" },
   statSub: { fontSize: 11, marginTop: 2 },
+
+  achievementsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  achievementBadge: {
+    width: "30%",
+    flexGrow: 1,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    minHeight: 90,
+  },
+  achievementLocked: { opacity: 0.45 },
+  achievementIcon: { fontSize: 28, marginBottom: 4 },
+  achievementIconLocked: { opacity: 0.6 },
+  achievementTitle: { fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 2 },
+  achievementDesc: { fontSize: 10, textAlign: "center" },
 
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
 
