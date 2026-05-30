@@ -2,7 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function RecentlyScreen() {
   const router = useRouter();
@@ -10,20 +10,22 @@ export default function RecentlyScreen() {
   const dark = colorScheme === "dark";
 
   const [cats, setCats] = useState<any[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function loadCats(opts?: { refresh?: boolean }) {
+    if (opts?.refresh) setRefreshing(true);
+    try {
+      const rows = await fetchAllCats();
+      setCats(rows);
+    } catch {
+      setCats([]);
+    } finally {
+      if (opts?.refresh) setRefreshing(false);
+    }
+  }
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const rows = await fetchAllCats();
-        if (!mounted) return;
-        setCats(rows);
-      } catch {
-        if (mounted) setCats([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+    loadCats();
   }, []);
 
   const sorted = useMemo(() => {
@@ -61,6 +63,14 @@ export default function RecentlyScreen() {
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           contentContainerStyle={{ padding: 12 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadCats({ refresh: true })}
+              tintColor={dark ? "#a78bfa" : "#111827"}
+              colors={["#a78bfa"]}
+            />
+          }
         />
       )}
     </SafeAreaView>
