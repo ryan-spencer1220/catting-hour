@@ -51,6 +51,7 @@ export default function RecentlyScreen() {
 
   return (
     <SafeAreaView style={[styles.container, dark && styles.darkBg]}>
+      <Text style={[styles.heading, dark && styles.darkText]}>Recently Added</Text>
       {cats === null ? (
         <ActivityIndicator color={dark ? "#fff" : "#111"} />
       ) : (
@@ -80,4 +81,5 @@ const styles = StyleSheet.create({
   meta: { color: "#6b7280", marginTop: 4 },
   time: { color: "#9ca3af", marginTop: 6, fontSize: 12 },
   sep: { height: 12 },
+  heading: { fontSize: 24, fontWeight: "700", color: "#111827", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
 });
