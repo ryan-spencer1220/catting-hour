@@ -1,6 +1,9 @@
 import { SelectField } from "@/components/select-field";
+import { AchievementPopup } from "@/components/achievement-popup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { createCat, uploadImage } from "@/lib/cats";
+import { checkAndUnlockAchievements, Achievement } from "@/lib/achievements";
+import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -36,6 +39,8 @@ export default function CreateCat() {
   const [notes, setNotes] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingAchievements, setPendingAchievements] = useState<Achievement[]>([]);
+  const [shownAchievement, setShownAchievement] = useState<Achievement | null>(null);
 
   async function openCamera() {
     try {
@@ -91,6 +96,23 @@ export default function CreateCat() {
         imageUrl = await uploadImage(imageUri);
       }
       await createCat({ name: name.trim(), type, temperament, indoor, notes, lat, lng, image: imageUrl });
+
+      try {
+        const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
+        if (userId) {
+          const { count } = await supabase
+            .from("cats")
+            .select("*", { count: "exact", head: true })
+            .eq("owner", userId);
+          const newAchievements = await checkAndUnlockAchievements(count ?? 0);
+          if (newAchievements.length > 0) {
+            setPendingAchievements(newAchievements.slice(1));
+            setShownAchievement(newAchievements[0]);
+            return;
+          }
+        }
+      } catch {}
+
       router.back();
     } catch (e: any) {
       Alert.alert("Save failed", e?.message || String(e));
@@ -99,10 +121,23 @@ export default function CreateCat() {
     }
   }
 
+  function handleAchievementDismiss() {
+    if (pendingAchievements.length > 0) {
+      const [next, ...rest] = pendingAchievements;
+      setPendingAchievements(rest);
+      setShownAchievement(next);
+    } else {
+      setShownAchievement(null);
+      router.back();
+    }
+  }
+
   const inputStyle = [styles.input, dark && styles.inputDark];
   const labelStyle = [styles.label, dark && styles.labelDark];
 
   return (
+    <>
+    <AchievementPopup achievement={shownAchievement} onDismiss={handleAchievementDismiss} />
     <SafeAreaView style={[styles.safe, dark && styles.safeDark]}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={[styles.heading, dark && styles.headingDark]}>Add a cat</Text>
@@ -175,6 +210,7 @@ export default function CreateCat() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 
