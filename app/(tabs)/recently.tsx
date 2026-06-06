@@ -61,6 +61,9 @@ export default function RecentlyScreen() {
           <Text style={styles.meta}>
             {item.type} · {item.temperament}
           </Text>
+          {item.ownerName ? (
+            <Text style={styles.addedBy}>Added by {item.ownerName}</Text>
+          ) : null}
           <Text style={styles.time}>{new Date(item.createdAt).toLocaleString()}</Text>
         </View>
       </Pressable>
@@ -108,7 +111,8 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   name: { fontSize: 16, fontWeight: "700", color: "#111827" },
   meta: { color: "#6b7280", marginTop: 4 },
-  time: { color: "#9ca3af", marginTop: 6, fontSize: 12 },
+  addedBy: { color: "#9ca3af", marginTop: 3, fontSize: 12 },
+  time: { color: "#9ca3af", marginTop: 2, fontSize: 12 },
   sep: { height: 12 },
   heading: { fontSize: 24, fontWeight: "700", color: "#111827", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   fetchingLabel: { fontSize: 13, color: "#9ca3af", paddingHorizontal: 16, paddingBottom: 8, fontStyle: "italic" },
