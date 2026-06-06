@@ -1,8 +1,10 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { addCheckin, deleteCheckin, fetchCheckins, type Checkin } from "@/lib/checkins";
 import { deleteCat, fetchCatById } from "@/lib/cats";
+import { fetchLikes, likeCat, unlikeCat } from "@/lib/likes";
 import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -60,6 +62,9 @@ export default function CatDetail() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   const [photos, setPhotos] = useState<CatPhoto[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
@@ -78,10 +83,13 @@ export default function CatDetail() {
     Promise.all([
       fetchCatById(id),
       supabase.auth.getSession(),
-    ]).then(([result, { data: sessionData }]) => {
+      fetchLikes(id),
+    ]).then(([result, { data: sessionData }, likes]) => {
       if (!mounted) return;
       setCat(result);
       setCurrentUserId(sessionData.session?.user?.id ?? null);
+      setLikeCount(likes.count);
+      setLiked(likes.likedByUser);
     }).catch(() => {
       if (mounted) setCat(null);
     }).finally(() => {
@@ -243,6 +251,23 @@ export default function CatDetail() {
     ]);
   }
 
+  async function handleToggleLike() {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => wasLiked ? c - 1 : c + 1);
+    try {
+      if (wasLiked) await unlikeCat(id);
+      else await likeCat(id);
+    } catch {
+      setLiked(wasLiked);
+      setLikeCount((c) => wasLiked ? c + 1 : c - 1);
+    } finally {
+      setLikeLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
@@ -381,6 +406,18 @@ export default function CatDetail() {
               </Text>
             </View>
           </View>
+
+          {/* Like button */}
+          <Pressable style={styles.likeRow} onPress={handleToggleLike} disabled={likeLoading}>
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={26}
+              color={liked ? "#ef4444" : textMuted}
+            />
+            <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
+              {likeCount > 0 ? likeCount : ""}
+            </Text>
+          </Pressable>
 
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
@@ -594,6 +631,8 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: "600" },
 
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 20 },
+  likeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16 },
+  likeCount: { fontSize: 15, fontWeight: "600" },
 
   detailList: { gap: 16 },
   detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
