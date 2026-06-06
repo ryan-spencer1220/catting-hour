@@ -121,12 +121,15 @@ export default function ProfileScreen() {
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle(),
-            supabase
-              .from("checkins")
-              .select("created_at, cat_id, cats(name)")
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
+            userId
+              ? supabase
+                  .from("checkins")
+                  .select("created_at, cat_id, cats(name)")
+                  .eq("author", userId)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle()
+              : Promise.resolve({ data: null, error: null }),
           ]);
 
           if (mounted) {
