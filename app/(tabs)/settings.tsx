@@ -3,14 +3,12 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeContext } from "@/context/theme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 const PURPLE = "#a78bfa";
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const { preference, setPreference, colorScheme } = useThemeContext();
   const dark = colorScheme === "dark";
   const useDarkMode = preference === "dark";

@@ -55,7 +55,7 @@ export default function ForgotPasswordScreen() {
         ) : (
           <>
             <ThemedText style={styles.body}>
-              Enter the email address for your account and we'll send you a reset link.
+              Enter the email address for your account and we&apos;ll send you a reset link.
             </ThemedText>
 
             <TextInput

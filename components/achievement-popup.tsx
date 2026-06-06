@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Modal, Pressable, StyleSheet, Text } from "react-native";
 import { Achievement } from "@/lib/achievements";
 
 type Props = {
@@ -21,7 +21,7 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
       opacity.setValue(0);
       scale.setValue(0.7);
     }
-  }, [achievement]);
+  }, [achievement, opacity, scale]);
 
   if (!achievement) return null;
 

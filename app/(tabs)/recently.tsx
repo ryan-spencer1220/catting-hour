@@ -41,12 +41,13 @@ export default function RecentlyScreen() {
 
   useEffect(() => {
     loadCats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sorted = useMemo(() => {
     try {
       return (cats || []).slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } catch (e) {
+    } catch {
       return [];
     }
   }, [cats]);

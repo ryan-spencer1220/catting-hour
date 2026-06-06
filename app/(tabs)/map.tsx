@@ -287,7 +287,7 @@ export default function MapScreen() {
               const id = data?.id;
               if (id) router.push(`/cats/${id}`);
             }
-          } catch (e) {
+          } catch {
             // ignore
           }
         }}

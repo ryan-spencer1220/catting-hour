@@ -62,7 +62,6 @@ export default function CatDetail() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [photos, setPhotos] = useState<CatPhoto[]>([]);
-  const [photosReady, setPhotosReady] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [addingPhoto, setAddingPhoto] = useState(false);
   const photoScrollRef = useRef<ScrollView>(null);
@@ -96,12 +95,8 @@ export default function CatDetail() {
     if (!id) return;
     let mounted = true;
     fetchCatPhotos(id)
-      .then((records) => {
-        if (!mounted) return;
-        setPhotos(records);
-        setPhotosReady(true);
-      })
-      .catch(() => { if (mounted) setPhotosReady(true); });
+      .then((records) => { if (mounted) setPhotos(records); })
+      .catch(() => {});
     return () => { mounted = false; };
   }, [id]);
 

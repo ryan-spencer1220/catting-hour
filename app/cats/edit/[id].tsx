@@ -1,17 +1,6 @@
 import { SelectField } from "@/components/select-field";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchCatById, updateCat, uploadImage } from "@/lib/cats";
-
-const CAT_TYPES = [
-  "Domestic Shorthair", "Domestic Longhair", "Tabby", "Calico", "Tuxedo",
-  "Tortoiseshell", "Siamese", "Persian", "Maine Coon", "Ragdoll",
-  "Bengal", "Sphynx", "Scottish Fold", "Unknown",
-];
-
-const CAT_TEMPERAMENTS = [
-  "Friendly", "Shy", "Playful", "Affectionate", "Independent",
-  "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
-];
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -28,6 +17,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const CAT_TYPES = [
+  "Domestic Shorthair", "Domestic Longhair", "Tabby", "Calico", "Tuxedo",
+  "Tortoiseshell", "Siamese", "Persian", "Maine Coon", "Ragdoll",
+  "Bengal", "Sphynx", "Scottish Fold", "Unknown",
+];
+
+const CAT_TEMPERAMENTS = [
+  "Friendly", "Shy", "Playful", "Affectionate", "Independent",
+  "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
+];
 
 const PURPLE = "#a78bfa";
 

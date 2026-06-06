@@ -158,7 +158,7 @@ export default function ProfileScreen() {
 
       load();
       return () => { mounted = false; };
-    }, [])
+    }, [router])
   );
 
   async function handlePickAvatar() {
