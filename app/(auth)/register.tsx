@@ -20,8 +20,21 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      Alert.alert("Validation", "Please choose a username.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]{2,30}$/.test(trimmedUsername)) {
+      Alert.alert("Invalid username", "Username must be 2–30 characters and can only contain letters, numbers, underscores, and hyphens.");
+      return;
+    }
     if (!email || !password) {
       Alert.alert("Validation", "Please provide email and password.");
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert("Validation", "Password must be at least 6 characters.");
       return;
     }
     if (password !== confirm) {
@@ -31,7 +44,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const data = await signUpWithEmail(email, password, username.trim() || undefined);
+      const data = await signUpWithEmail(email, password, trimmedUsername || undefined);
       if (data.session) {
         // Email confirmation is disabled — user is immediately signed in.
         // onAuthStateChange in _layout.tsx handles the redirect.
@@ -40,7 +53,8 @@ export default function RegisterScreen() {
         router.push("/(auth)/login");
       }
     } catch (e: any) {
-      Alert.alert("Registration failed", e.message || String(e));
+      const msg = e.message || String(e);
+      Alert.alert("Registration failed", msg.includes("unique") ? "That username is already taken." : msg);
     } finally {
       setLoading(false);
     }
@@ -55,7 +69,7 @@ export default function RegisterScreen() {
 
         <TextInput
           style={inputStyle}
-          placeholder="Username (optional)"
+          placeholder="Username"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={username}
           onChangeText={setUsername}

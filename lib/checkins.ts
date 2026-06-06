@@ -36,9 +36,7 @@ export async function addCheckin(catId: string, note: string): Promise<Checkin> 
     const { data } = await supabase.auth.getUser();
     const user = (data as any)?.user;
     authorId = user?.id ?? null;
-    authorName = user?.user_metadata?.username
-      ?? user?.email?.split("@")[0]
-      ?? null;
+    authorName = user?.user_metadata?.username ?? null;
   } catch {
     authorId = null;
   }

@@ -292,8 +292,6 @@ export default function MapScreen() {
           }
         }}
         onLoadEnd={() => setLoading(false)}
-        allowFileAccess
-        mixedContentMode="always"
       />
       {loading && (
         <View style={styles.loadingOverlay} pointerEvents="none">

@@ -2,6 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { addCheckin, deleteCheckin, fetchCheckins, type Checkin } from "@/lib/checkins";
 import { deleteCat, fetchCatById } from "@/lib/cats";
 import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/lib/photos";
+import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -58,6 +59,7 @@ export default function CatDetail() {
   const [cat, setCat] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [photos, setPhotos] = useState<CatPhoto[]>([]);
   const [photosReady, setPhotosReady] = useState(false);
@@ -71,19 +73,21 @@ export default function CatDetail() {
   const [newNote, setNewNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Load cat
+  // Load cat and current user in parallel
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      try {
-        const result = await fetchCatById(id);
-        if (mounted) setCat(result);
-      } catch {
-        if (mounted) setCat(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
+    Promise.all([
+      fetchCatById(id),
+      supabase.auth.getSession(),
+    ]).then(([result, { data: sessionData }]) => {
+      if (!mounted) return;
+      setCat(result);
+      setCurrentUserId(sessionData.session?.user?.id ?? null);
+    }).catch(() => {
+      if (mounted) setCat(null);
+    }).finally(() => {
+      if (mounted) setLoading(false);
+    });
     return () => { mounted = false; };
   }, [id]);
 
@@ -355,7 +359,14 @@ export default function CatDetail() {
 
           <Text style={[styles.name, { color: textPrimary }]}>{cat.name}</Text>
           {cat.ownerName ? (
-            <Text style={[styles.addedBy, { color: textMuted }]}>Added by {cat.ownerName}</Text>
+            <Pressable
+              onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
+              disabled={!cat.owner}
+            >
+              <Text style={[styles.addedBy, { color: textMuted }, cat.owner && styles.addedByTappable]}>
+                Added by {cat.ownerName}
+              </Text>
+            </Pressable>
           ) : null}
 
           <View style={styles.badges}>
@@ -466,32 +477,34 @@ export default function CatDetail() {
               <Text style={[styles.editBtnText, { color: dark ? PURPLE : "#111827" }]}>Edit</Text>
             </Pressable>
 
-            <Pressable
-              style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
-              disabled={deleting}
-              onPress={() =>
-                Alert.alert("Delete cat", "Are you sure? This cannot be undone.", [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                      setDeleting(true);
-                      try {
-                        await deleteCat(id);
-                        router.back();
-                      } catch (e: any) {
-                        Alert.alert("Delete failed", e?.message || String(e));
-                      } finally {
-                        setDeleting(false);
-                      }
+            {currentUserId && cat?.owner === currentUserId && (
+              <Pressable
+                style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
+                disabled={deleting}
+                onPress={() =>
+                  Alert.alert("Delete cat", "Are you sure? This cannot be undone.", [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: async () => {
+                        setDeleting(true);
+                        try {
+                          await deleteCat(id);
+                          router.back();
+                        } catch (e: any) {
+                          Alert.alert("Delete failed", e?.message || String(e));
+                        } finally {
+                          setDeleting(false);
+                        }
+                      },
                     },
-                  },
-                ])
-              }
-            >
-              <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete"}</Text>
-            </Pressable>
+                  ])
+                }
+              >
+                <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete"}</Text>
+              </Pressable>
+            )}
           </View>
 
         </View>
@@ -580,6 +593,7 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
   addedBy: { fontSize: 13, marginTop: 4, marginBottom: 2 },
+  addedByTappable: { color: "#a78bfa", textDecorationLine: "underline" },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   badge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   badgeText: { fontSize: 13, fontWeight: "600" },

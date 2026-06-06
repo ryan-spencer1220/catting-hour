@@ -3,6 +3,7 @@ import { uploadImage } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { ACHIEVEMENTS, getUnlockedAchievements } from "@/lib/achievements";
+import { fetchFollowCounts, syncProfile } from "@/lib/profiles";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -60,9 +61,13 @@ export default function ProfileScreen() {
   const [editingCity, setEditingCity] = useState(false);
   const [cityDraft, setCityDraft] = useState("");
   const [savingCity, setSavingCity] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
+  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -82,6 +87,15 @@ export default function ProfileScreen() {
         } finally {
           if (mounted) setLoading(false);
         }
+
+        // Load follow counts
+        try {
+          const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
+          if (userId) {
+            const counts = await fetchFollowCounts(userId);
+            if (mounted) setFollowCounts(counts);
+          }
+        } catch {}
 
         // Load stats
         try {
@@ -166,7 +180,10 @@ export default function ProfileScreen() {
 
       setUploadingAvatar(true);
       const url = await uploadImage(uri);
-      await supabase.auth.updateUser({ data: { avatar_url: url } });
+      await Promise.all([
+        supabase.auth.updateUser({ data: { avatar_url: url } }),
+        syncProfile({ avatarUrl: url }),
+      ]);
       setUser((prev: any) => prev
         ? { ...prev, user_metadata: { ...prev.user_metadata, avatar_url: url } }
         : prev
@@ -182,7 +199,10 @@ export default function ProfileScreen() {
     setSavingCity(true);
     try {
       const trimmed = cityDraft.trim();
-      await supabase.auth.updateUser({ data: { city: trimmed || null } });
+      await Promise.all([
+        supabase.auth.updateUser({ data: { city: trimmed || null } }),
+        syncProfile({ city: trimmed || null }),
+      ]);
       setUser((prev: any) => prev
         ? { ...prev, user_metadata: { ...prev.user_metadata, city: trimmed || null } }
         : prev
@@ -198,6 +218,43 @@ export default function ProfileScreen() {
   function startEditCity() {
     setCityDraft(user?.user_metadata?.city ?? "");
     setEditingCity(true);
+  }
+
+  async function saveUsername() {
+    const trimmed = usernameDraft.trim();
+    if (!trimmed) {
+      Alert.alert("Required", "Username cannot be empty.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]{2,30}$/.test(trimmed)) {
+      Alert.alert("Invalid username", "Username must be 2–30 characters: letters, numbers, _ or -");
+      return;
+    }
+    setSavingUsername(true);
+    try {
+      await Promise.all([
+        supabase.auth.updateUser({ data: { username: trimmed } }),
+        syncProfile({ username: trimmed }),
+      ]);
+      setUser((prev: any) => prev
+        ? { ...prev, user_metadata: { ...prev.user_metadata, username: trimmed } }
+        : prev
+      );
+      setEditingUsername(false);
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      Alert.alert(
+        "Failed to save",
+        msg.includes("unique") ? "That username is already taken." : msg
+      );
+    } finally {
+      setSavingUsername(false);
+    }
+  }
+
+  function startEditUsername() {
+    setUsernameDraft(user?.user_metadata?.username ?? "");
+    setEditingUsername(true);
   }
 
   function handleSignOut() {
@@ -220,7 +277,7 @@ export default function ProfileScreen() {
     ]);
   }
 
-  const displayName = user?.user_metadata?.username ?? user?.email?.split("@")[0] ?? "";
+  const displayName = user?.user_metadata?.username ?? "";
   const avatarUrl = user?.user_metadata?.avatar_url ?? null;
   const city = user?.user_metadata?.city ?? null;
   const memberSince = user?.created_at
@@ -260,7 +317,31 @@ export default function ProfileScreen() {
           <ActivityIndicator color="#fff" style={{ marginTop: 16 }} />
         ) : (
           <>
-            <Text style={styles.displayName}>{displayName}</Text>
+            {editingUsername ? (
+              <View style={styles.cityEditRow}>
+                <TextInput
+                  style={[styles.cityInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+                  value={usernameDraft}
+                  onChangeText={setUsernameDraft}
+                  placeholder="Username"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={saveUsername}
+                />
+                <Pressable style={styles.citySaveBtn} onPress={saveUsername} disabled={savingUsername}>
+                  <Text style={styles.citySaveBtnText}>{savingUsername ? "…" : "Save"}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={startEditUsername}>
+                <Text style={styles.displayName}>
+                  {displayName || "Set username"}
+                </Text>
+              </Pressable>
+            )}
             {user?.email ? (
               <Text style={styles.email}>{user.email}</Text>
             ) : null}
@@ -293,6 +374,19 @@ export default function ProfileScreen() {
             {memberSince ? (
               <Text style={styles.memberSince}>Member since {memberSince}</Text>
             ) : null}
+
+            {/* Follow counts */}
+            <View style={styles.followCountsRow}>
+              <View style={styles.followCountItem}>
+                <Text style={styles.followCountNumber}>{followCounts.followers}</Text>
+                <Text style={styles.followCountLabel}>Followers</Text>
+              </View>
+              <View style={styles.followCountDivider} />
+              <View style={styles.followCountItem}>
+                <Text style={styles.followCountNumber}>{followCounts.following}</Text>
+                <Text style={styles.followCountLabel}>Following</Text>
+              </View>
+            </View>
           </>
         )}
       </View>
@@ -475,6 +569,12 @@ const styles = StyleSheet.create({
   citySaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   memberSince: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 },
+
+  followCountsRow: { flexDirection: "row", alignItems: "center", marginTop: 16, gap: 8 },
+  followCountItem: { alignItems: "center", paddingHorizontal: 16 },
+  followCountNumber: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  followCountLabel: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 },
+  followCountDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.3)" },
 
   sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
   statsGrid: { flexDirection: "row" },

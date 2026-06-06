@@ -11,6 +11,7 @@ export type Cat = {
   lng?: number;
   image?: string | null;
   createdAt?: string | null;
+  owner?: string | null;
   ownerName?: string | null;
 };
 
@@ -27,6 +28,7 @@ function mapRow(row: any): Cat | null {
     lng: row.lng !== undefined ? Number(row.lng) : undefined,
     image: row.image ?? null,
     createdAt: row.created_at ?? row.createdAt ?? null,
+    owner: row.owner ?? null,
     ownerName: row.owner_name ?? null,
   };
 }
@@ -50,9 +52,7 @@ export async function createCat(payload: Partial<Cat>): Promise<Cat> {
     const { data: userData } = await supabase.auth.getUser();
     const user = (userData as any)?.user;
     ownerId = user?.id ?? null;
-    ownerName = user?.user_metadata?.username
-      ?? user?.email?.split("@")[0]
-      ?? null;
+    ownerName = user?.user_metadata?.username ?? null;
   } catch (e) {
     ownerId = null;
   }

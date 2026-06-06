@@ -1,8 +1,8 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function RecentlyScreen() {
   const router = useRouter();
@@ -11,16 +11,31 @@ export default function RecentlyScreen() {
 
   const [cats, setCats] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const fetchingOpacity = useRef(new Animated.Value(0)).current;
+
+  function animateFetchLabel(visible: boolean) {
+    Animated.timing(fetchingOpacity, {
+      toValue: visible ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }
 
   async function loadCats(opts?: { refresh?: boolean }) {
-    if (opts?.refresh) setRefreshing(true);
+    if (opts?.refresh) {
+      setRefreshing(true);
+      animateFetchLabel(true);
+    }
     try {
       const rows = await fetchAllCats();
       setCats(rows);
     } catch {
       setCats([]);
     } finally {
-      if (opts?.refresh) setRefreshing(false);
+      if (opts?.refresh) {
+        animateFetchLabel(false);
+        setRefreshing(false);
+      }
     }
   }
 
@@ -54,6 +69,9 @@ export default function RecentlyScreen() {
   return (
     <SafeAreaView style={[styles.container, dark && styles.darkBg]}>
       <Text style={[styles.heading, dark && styles.darkText]}>Recently Added</Text>
+      <Animated.Text style={[styles.fetchingLabel, dark && styles.fetchingLabelDark, { opacity: fetchingOpacity }]}>
+        🐱 fetching cats...
+      </Animated.Text>
       {cats === null ? (
         <ActivityIndicator color={dark ? "#fff" : "#111"} />
       ) : (
@@ -91,5 +109,7 @@ const styles = StyleSheet.create({
   meta: { color: "#6b7280", marginTop: 4 },
   time: { color: "#9ca3af", marginTop: 6, fontSize: 12 },
   sep: { height: 12 },
-  heading: { fontSize: 24, fontWeight: "700", color: "#111827", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  heading: { fontSize: 24, fontWeight: "700", color: "#111827", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
+  fetchingLabel: { fontSize: 13, color: "#9ca3af", paddingHorizontal: 16, paddingBottom: 8, fontStyle: "italic" },
+  fetchingLabelDark: { color: "#6b7280" },
 });
