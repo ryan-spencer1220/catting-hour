@@ -260,9 +260,10 @@ export default function CatDetail() {
     try {
       if (wasLiked) await unlikeCat(id);
       else await likeCat(id);
-    } catch {
+    } catch (e: any) {
       setLiked(wasLiked);
       setLikeCount((c) => wasLiked ? c + 1 : c - 1);
+      Alert.alert("Error", e?.message || String(e));
     } finally {
       setLikeLoading(false);
     }
