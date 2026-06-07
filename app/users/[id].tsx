@@ -135,7 +135,7 @@ export default function UserProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Header band */}
-            <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: accent }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
               {profile.avatarUrl ? (
                 <FadeImage uri={profile.avatarUrl} style={styles.avatar} />
               ) : (
