@@ -19,7 +19,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
-import { Calendar, Cat, Clock, Globe, Lock, PawPrint, Pencil } from "lucide-react-native";
+import { Calendar, Cat, Clock, Globe, Lock, MapPin, PawPrint, Pencil } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function timeAgo(dateStr: string): string {
@@ -347,8 +347,9 @@ export default function ProfileScreen() {
                 </Pressable>
               </View>
             ) : (
-              <Pressable onPress={startEditCity}>
-                <Text style={styles.cityText}>{city ? `📍 ${city}` : "📍 Add location"}</Text>
+              <Pressable style={styles.cityRow} onPress={startEditCity}>
+                <MapPin size={12} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.cityText}>{city ?? "Add location"}</Text>
               </Pressable>
             )}
 
@@ -536,7 +537,8 @@ const styles = StyleSheet.create({
 
   displayName: { color: "#fff", fontSize: 18, fontWeight: "800" },
 
-  cityText: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  cityText: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
   cityEditRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   cityInput: {
     flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,

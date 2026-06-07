@@ -22,7 +22,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
-import { ChevronLeft, ChevronRight, PawPrint } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, MapPin, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
@@ -141,7 +141,10 @@ export default function UserProfileScreen() {
 
               <Text style={styles.displayName}>{displayName}</Text>
               {profile.city ? (
-                <Text style={styles.city}>📍 {profile.city}</Text>
+                <View style={styles.cityRow}>
+                  <MapPin size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.city}>{profile.city}</Text>
+                </View>
               ) : null}
 
               {/* Follow counts */}
@@ -248,7 +251,8 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
   initials: { color: "#fff", fontSize: 28, fontWeight: "700" },
   displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
-  city: { color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 4 },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  city: { color: "rgba(255,255,255,0.8)", fontSize: 14 },
 
   countsRow: { flexDirection: "row", alignItems: "center", marginTop: 20, gap: 8 },
   countItem: { alignItems: "center", paddingHorizontal: 16 },
