@@ -13,7 +13,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -24,6 +23,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { FadeImage } from "@/components/fade-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const IMAGE_HEIGHT = 300;
@@ -322,7 +322,7 @@ export default function CatDetail() {
                   style={{ width: screenWidth, height: IMAGE_HEIGHT }}
                   onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
                 >
-                  <Image source={{ uri: url }} style={{ width: screenWidth, height: IMAGE_HEIGHT }} resizeMode="cover" />
+                  <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
                 </Pressable>
               ))}
             </ScrollView>

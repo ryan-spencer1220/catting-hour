@@ -11,7 +11,6 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +18,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { FadeImage } from "@/components/fade-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function timeAgo(dateStr: string): string {
@@ -289,7 +289,7 @@ export default function ProfileScreen() {
               <ActivityIndicator color="#fff" />
             </View>
           ) : avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <FadeImage uri={avatarUrl} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <Text style={styles.initials}>{initials}</Text>

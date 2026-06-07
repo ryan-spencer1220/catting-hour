@@ -16,12 +16,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { FadeImage } from "@/components/fade-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
@@ -131,7 +131,7 @@ export default function UserProfileScreen() {
             {/* Header band */}
             <View style={[styles.header, { paddingTop: insets.top + 56, backgroundColor: accent }]}>
               {profile.avatarUrl ? (
-                <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
+                <FadeImage uri={profile.avatarUrl} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <Text style={styles.initials}>{initials}</Text>
@@ -200,7 +200,7 @@ export default function UserProfileScreen() {
             onPress={() => router.push(`/cats/${item.id}`)}
           >
             {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.catThumb} />
+              <FadeImage uri={item.image} style={styles.catThumb} />
             ) : (
               <View style={[styles.catThumb, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb", alignItems: "center", justifyContent: "center" }]}>
                 <Text style={{ fontSize: 22 }}>🐾</Text>

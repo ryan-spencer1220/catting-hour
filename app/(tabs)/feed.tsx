@@ -3,7 +3,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { FadeImage } from "@/components/fade-image";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 export default function RecentlyScreen() {
@@ -55,7 +56,7 @@ export default function RecentlyScreen() {
   function renderItem({ item }: { item: any }) {
     return (
       <Pressable style={[styles.card, dark && styles.darkCard]} onPress={() => router.push(`/cats/${item.id}`)}>
-        {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : <View style={[styles.imagePlaceholder, dark && styles.darkPlaceholder]} />}
+        {item.image ? <FadeImage uri={item.image} style={styles.image} /> : <View style={[styles.imagePlaceholder, dark && styles.darkPlaceholder]} />}
         <View style={styles.info}>
           <Text style={[styles.name, dark && styles.darkText]}>{item.name}</Text>
           <Text style={styles.meta}>

@@ -7,13 +7,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { FadeImage } from "@/components/fade-image";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
@@ -96,7 +96,7 @@ export default function RecentlyScreen() {
     return (
       <Pressable style={[styles.card, { backgroundColor: card }]} onPress={() => router.push(`/cats/${item.id}`)}>
         {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.image} />
+          <FadeImage uri={item.image} style={styles.image} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
             <Text style={{ fontSize: 22 }}>🐾</Text>
