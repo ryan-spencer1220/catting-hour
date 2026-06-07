@@ -2,8 +2,9 @@ import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 export default function RecentlyScreen() {
   const router = useRouter();
@@ -13,14 +14,11 @@ export default function RecentlyScreen() {
 
   const [cats, setCats] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const fetchingOpacity = useRef(new Animated.Value(0)).current;
+  const fetchingOpacity = useSharedValue(0);
+  const fetchingStyle = useAnimatedStyle(() => ({ opacity: fetchingOpacity.value }));
 
   function animateFetchLabel(visible: boolean) {
-    Animated.timing(fetchingOpacity, {
-      toValue: visible ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    fetchingOpacity.value = withTiming(visible ? 1 : 0, { duration: 200 });
   }
 
   async function loadCats(opts?: { refresh?: boolean }) {
@@ -75,7 +73,7 @@ export default function RecentlyScreen() {
   return (
     <SafeAreaView style={[styles.container, dark && styles.darkBg]}>
       <Text style={[styles.heading, dark && styles.darkText]}>Recently Added</Text>
-      <Animated.Text style={[styles.fetchingLabel, dark && styles.fetchingLabelDark, { opacity: fetchingOpacity }]}>
+      <Animated.Text style={[styles.fetchingLabel, dark && styles.fetchingLabelDark, fetchingStyle]}>
         🐱 fetching cats...
       </Animated.Text>
       {cats === null ? (

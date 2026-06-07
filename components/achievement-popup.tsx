@@ -1,7 +1,8 @@
 import { useAccent } from "@/context/theme";
 import { Achievement } from "@/lib/achievements";
-import React, { useEffect, useRef } from "react";
-import { Animated, Modal, Pressable, StyleSheet, Text } from "react-native";
+import React, { useEffect } from "react";
+import { Modal, Pressable, StyleSheet, Text } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 type Props = {
   achievement: Achievement | null;
@@ -10,18 +11,21 @@ type Props = {
 
 export function AchievementPopup({ achievement, onDismiss }: Props) {
   const accent = useAccent();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.7)).current;
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.7);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
 
   useEffect(() => {
     if (achievement) {
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 180 }),
-        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-      ]).start();
+      opacity.value = withTiming(1, { duration: 200 });
+      scale.value = withSpring(1, { damping: 12, stiffness: 180 });
     } else {
-      opacity.setValue(0);
-      scale.setValue(0.7);
+      opacity.value = 0;
+      scale.value = 0.7;
     }
   }, [achievement, opacity, scale]);
 
@@ -30,7 +34,7 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
   return (
     <Modal transparent animationType="none" visible={!!achievement} onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
-        <Animated.View style={[styles.card, { opacity, transform: [{ scale }], borderColor: accent }]}>
+        <Animated.View style={[styles.card, animatedStyle, { borderColor: accent }]}>
           <Text style={styles.badge}>🎉</Text>
           <Text style={[styles.achievedLabel, { color: accent }]}>Achievement Unlocked!</Text>
           <Text style={styles.icon}>{achievement.icon}</Text>
