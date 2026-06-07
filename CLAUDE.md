@@ -22,7 +22,11 @@ eas build --profile preview
 eas build --profile production
 ```
 
-There is no test suite configured.
+```bash
+# Run tests
+npx jest
+npx jest --testPathPattern=achievements  # single file
+```
 
 ## Architecture
 
@@ -39,7 +43,7 @@ Expo Router with three route groups:
 
 ### Data layer (`lib/`)
 
-- **`lib/supabase.ts`** — single Supabase client; credentials are hardcoded (development keys).
+- **`lib/supabase.ts`** — single Supabase client; reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from the environment (`.env` locally, EAS secrets for builds).
 - **`lib/cats.ts`** — full CRUD against the `cats` table: `fetchAllCats`, `fetchCatById`, `createCat`, `updateCat`, `deleteCat`. `createCat` attempts to attach `auth.uid()` as owner but silently falls back to null.
 - **`lib/auth.ts`** — thin wrappers over `supabase.auth`: `signUpWithEmail`, `signInWithEmail`, `signOut`, `onAuthStateChange`.
 
@@ -52,15 +56,16 @@ The `my-cats` and `recently` tabs fetch exclusively from Supabase (`fetchAllCats
 
 ### Map (`app/(tabs)/map.tsx`)
 
-The map is rendered inside a `<WebView>` using **Mapbox GL JS** injected as an HTML string — not the native `@rnmapbox/maps` package (which is installed but unused). The Mapbox access token is read from `expo-constants` → `app.json` `extra.MAPBOX_ACCESS_TOKEN`. Map clicks navigate to `/cats/create?lng=...&lat=...`. Cat markers are passed into the WebView via the HTML string (JSON-serialized), not via native bridge.
+Uses **`@rnmapbox/maps`** (native). The public access token (`pk.`) flows through `app.config.js` `extra.MAPBOX_ACCESS_TOKEN` → `expo-constants`. The downloads token (`sk.`) is only needed at EAS build time via the `@rnmapbox/maps` plugin. Tapping the map calls `onPress(GeoJSON.Feature)` and navigates to `/cats/create?lng=...&lat=...`. Cat markers are `Mapbox.MarkerView` components with a `Pressable` that navigates to the cat detail.
 
 ### Theme system
 
 `context/theme.tsx` provides `ThemeContextProvider` wrapping the root layout. It stores user preference (`"system" | "light" | "dark"`) in AsyncStorage under `@theme_preference`. Components access it via `useThemeContext()` or the `useColorScheme` hook (`hooks/use-color-scheme.ts`). The palette is:
 
 - Dark background: `#0f1720` / cards: `#1a2535`
-- Accent (dark mode): `#a78bfa` (purple)
+- Accent: user-selectable (5 swatches: Navy `#1B5091`, Teal `#279D9F`, Amber `#FFA74F`, Pink `#E881A6`, Magenta `#CE3375`), persisted to AsyncStorage. Access via `useAccent()` from `context/theme.tsx`.
 - Light background: `#fff`, primary: `#111827`
+- **StyleSheet.create is static** — accent-colored styles must be applied as inline styles (`[styles.foo, { backgroundColor: accent }]`), not inside StyleSheet.
 
 Themed primitives: `components/themed-text.tsx`, `components/themed-view.tsx`.
 
