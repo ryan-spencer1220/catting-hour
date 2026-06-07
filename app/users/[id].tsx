@@ -119,10 +119,6 @@ export default function UserProfileScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
-      <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
-        <Text style={styles.backBtnText}>‹</Text>
-      </Pressable>
-
       <FlatList
         data={cats}
         keyExtractor={(c) => c.id}
@@ -240,8 +236,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: {},
-
   header: {
     alignItems: "center",
     paddingBottom: 32,
