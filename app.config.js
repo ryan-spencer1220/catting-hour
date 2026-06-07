@@ -6,7 +6,7 @@ module.exports = ({ config }) => ({
     ...(appJson.expo.plugins ?? []),
     [
       "@rnmapbox/maps",
-      { RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN ?? "" },
+      { RNMAPBOX_MAPS_DOWNLOAD_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN ?? "" },
     ],
   ],
   extra: {

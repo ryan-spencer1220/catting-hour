@@ -8,11 +8,11 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];

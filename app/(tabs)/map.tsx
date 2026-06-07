@@ -1,17 +1,20 @@
 import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
-import Mapbox from "@rnmapbox/maps";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-const MAPBOX_ACCESS_TOKEN =
-  (Constants as any).expoConfig?.extra?.MAPBOX_ACCESS_TOKEN ?? "";
-
-Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+// @rnmapbox/maps requires a native dev build — not available in Expo Go.
+// We do a runtime require so the module error doesn't crash the whole app.
+let Mapbox: any = null;
+try {
+  Mapbox = require("@rnmapbox/maps").default;
+  const token = (Constants as any).expoConfig?.extra?.MAPBOX_ACCESS_TOKEN ?? "";
+  Mapbox.setAccessToken(token);
+} catch {}
 
 const DEFAULT_CENTER: [number, number] = [-122.431297, 37.773972];
 const DEFAULT_ZOOM = 12;
@@ -47,15 +50,30 @@ export default function MapScreen() {
     }, [])
   );
 
+  if (!Mapbox) {
+    return (
+      <View style={[styles.fallback, dark && styles.fallbackDark]}>
+        <Text style={styles.fallbackEmoji}>🗺️</Text>
+        <Text style={[styles.fallbackTitle, dark && styles.fallbackTitleDark]}>
+          Development Build Required
+        </Text>
+        <Text style={styles.fallbackBody}>
+          Native maps aren't available in Expo Go.{"\n"}Run a development build to use the map.
+        </Text>
+        <Text style={[styles.fallbackCmd, { color: accent }]}>
+          eas build --profile development
+        </Text>
+      </View>
+    );
+  }
+
   function handleMapPress(feature: GeoJSON.Feature) {
     if (feature.geometry?.type !== "Point") return;
     const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
     router.push(`/cats/create?lng=${lng}&lat=${lat}`);
   }
 
-  const styleURL = dark
-    ? Mapbox.StyleURL.Dark
-    : Mapbox.StyleURL.Street;
+  const styleURL = dark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street;
 
   return (
     <View style={styles.container}>
@@ -106,6 +124,20 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+
+  fallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f9fafb",
+    padding: 32,
+  },
+  fallbackDark: { backgroundColor: "#0f1720" },
+  fallbackEmoji: { fontSize: 48, marginBottom: 16 },
+  fallbackTitle: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 8 },
+  fallbackTitleDark: { color: "#fff" },
+  fallbackBody: { fontSize: 14, color: "#6b7280", textAlign: "center", lineHeight: 22, marginBottom: 16 },
+  fallbackCmd: { fontSize: 13, fontFamily: "monospace", fontWeight: "600" },
 
   marker: {
     width: 36,
