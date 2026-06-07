@@ -1,4 +1,5 @@
 import { useAccent } from "@/context/theme";
+import { Check, ChevronRight } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Modal,
@@ -46,7 +47,7 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
         <Text style={[styles.fieldText, { color: value ? textColor : mutedColor }]}>
           {value || placeholder}
         </Text>
-        <Text style={[styles.chevron, { color: chevronColor }]}>›</Text>
+        <ChevronRight size={18} color={chevronColor} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -68,7 +69,7 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
               >
                 <Text style={[styles.optionText, { color: textColor }]}>{opt}</Text>
                 {opt === value ? (
-                  <Text style={[styles.checkmark, { color: dark ? accent : "#111827" }]}>✓</Text>
+                  <Check size={16} color={dark ? accent : "#111827"} />
                 ) : null}
               </Pressable>
             ))}
@@ -98,7 +99,6 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   fieldText: { fontSize: 15 },
-  chevron: { fontSize: 20, lineHeight: 22 },
 
   backdrop: {
     flex: 1,
@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   optionText: { fontSize: 16 },
-  checkmark: { fontSize: 16, fontWeight: "700" },
   cancelBtn: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingVertical: 16,

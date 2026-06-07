@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
+import { Calendar, Cat, Clock, Globe, Lock, PawPrint, Pencil } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function timeAgo(dateStr: string): string {
@@ -296,7 +297,7 @@ export default function ProfileScreen() {
             </View>
           )}
           <View style={[styles.avatarEditBadge, { borderColor: accent }]}>
-            <Text style={[styles.avatarEditIcon, { color: accent }]}>✎</Text>
+            <Pencil size={12} color={accent} />
           </View>
         </Pressable>
 
@@ -378,7 +379,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionLabel, { color: textMuted }]}>Your activity</Text>
         <View style={[styles.statCard, { backgroundColor: card }]}>
           <StatRow
-            icon="🐾"
+            icon={<PawPrint size={16} color={textMuted} />}
             label="Cats logged"
             value={statsLoading ? null : String(stats?.myCats ?? 0)}
             textPrimary={textPrimary}
@@ -386,7 +387,7 @@ export default function ProfileScreen() {
           />
           <View style={[styles.statDivider, { backgroundColor: divider }]} />
           <StatRow
-            icon="✅"
+            icon={<Cat size={16} color={textMuted} />}
             label="Check-ins"
             value={statsLoading ? null : String(stats?.myCheckins ?? 0)}
             textPrimary={textPrimary}
@@ -394,7 +395,7 @@ export default function ProfileScreen() {
           />
           <View style={[styles.statDivider, { backgroundColor: divider }]} />
           <StatRow
-            icon="📅"
+            icon={<Calendar size={16} color={textMuted} />}
             label="Last cat added"
             value={statsLoading ? null : stats?.lastCatAdded ? timeAgo(stats.lastCatAdded.createdAt) : "—"}
             sub={stats?.lastCatAdded?.name}
@@ -407,7 +408,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Community</Text>
         <View style={[styles.statCard, { backgroundColor: card }]}>
           <StatRow
-            icon="🌍"
+            icon={<Globe size={16} color={textMuted} />}
             label="Total cats"
             value={statsLoading ? null : String(stats?.totalCats ?? 0)}
             textPrimary={textPrimary}
@@ -415,7 +416,7 @@ export default function ProfileScreen() {
           />
           <View style={[styles.statDivider, { backgroundColor: divider }]} />
           <StatRow
-            icon="🕐"
+            icon={<Clock size={16} color={textMuted} />}
             label="Last login"
             value={user?.last_sign_in_at ? timeAgo(user.last_sign_in_at) : "—"}
             textPrimary={textPrimary}
@@ -441,9 +442,11 @@ export default function ProfileScreen() {
                   !unlocked && styles.achievementLocked,
                 ]}
               >
-                <Text style={[styles.achievementIcon, !unlocked && styles.achievementIconLocked]}>
-                  {unlocked ? a.icon : "🔒"}
-                </Text>
+                {unlocked ? (
+                  <Text style={styles.achievementIcon}>{a.icon}</Text>
+                ) : (
+                  <Lock size={28} color="#9ca3af" />
+                )}
                 <Text
                   style={[styles.achievementTitle, { color: unlocked ? textPrimary : textMuted }]}
                   numberOfLines={2}
@@ -476,7 +479,7 @@ export default function ProfileScreen() {
 function StatRow({
   icon, label, value, sub, textPrimary, textMuted,
 }: {
-  icon: string;
+  icon: React.ReactElement;
   label: string;
   value: string | null;
   sub?: string;
@@ -485,7 +488,7 @@ function StatRow({
 }) {
   return (
     <View style={styles.statRow}>
-      <Text style={styles.statRowIcon}>{icon}</Text>
+      <View style={styles.statRowIcon}>{icon}</View>
       <Text style={[styles.statRowLabel, { color: textMuted }]}>{label}</Text>
       <View style={styles.statRowRight}>
         {value === null ? (
@@ -527,7 +530,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  avatarEditIcon: { fontSize: 12, lineHeight: 17 },
+  avatarEditIcon: {},
 
   headerInfo: { flex: 1 },
 
@@ -569,7 +572,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     gap: 10,
   },
-  statRowIcon: { fontSize: 18, width: 26, textAlign: "center" },
+  statRowIcon: { width: 26, alignItems: "center" },
   statRowLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
   statRowRight: { alignItems: "flex-end" },
   statRowValue: { fontSize: 14, fontWeight: "700" },

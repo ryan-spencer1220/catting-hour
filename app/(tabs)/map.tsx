@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
+import { Map as MapIcon, PawPrint } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 // @rnmapbox/maps requires a native dev build — not available in Expo Go.
@@ -53,7 +54,7 @@ export default function MapScreen() {
   if (!Mapbox) {
     return (
       <View style={[styles.fallback, dark && styles.fallbackDark]}>
-        <Text style={styles.fallbackEmoji}>🗺️</Text>
+        <MapIcon size={48} color="#9ca3af" style={{ marginBottom: 16 }} />
         <Text style={[styles.fallbackTitle, dark && styles.fallbackTitleDark]}>
           Development Build Required
         </Text>
@@ -107,7 +108,7 @@ export default function MapScreen() {
                 hitSlop={8}
               >
                 <View style={[styles.marker, dark && { backgroundColor: `${accent}33`, borderColor: accent }]}>
-                  <Text style={styles.markerEmoji}>🐾</Text>
+                  <PawPrint size={18} color={dark ? accent : "#555"} />
                 </View>
               </Pressable>
             </Mapbox.MarkerView>
@@ -133,7 +134,6 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   fallbackDark: { backgroundColor: "#0f1720" },
-  fallbackEmoji: { fontSize: 48, marginBottom: 16 },
   fallbackTitle: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 8 },
   fallbackTitleDark: { color: "#fff" },
   fallbackBody: { fontSize: 14, color: "#6b7280", textAlign: "center", lineHeight: 22, marginBottom: 16 },
@@ -154,8 +154,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.08)",
   },
-  markerEmoji: { fontSize: 18, lineHeight: 22 },
-
   hint: {
     position: "absolute",
     bottom: 24,

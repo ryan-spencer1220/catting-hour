@@ -1,7 +1,8 @@
 import { useAccent } from "@/context/theme";
 import { Achievement } from "@/lib/achievements";
 import React, { useEffect } from "react";
-import { Modal, Pressable, StyleSheet, Text } from "react-native";
+import { PartyPopper } from "lucide-react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 type Props = {
@@ -35,7 +36,7 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
     <Modal transparent animationType="none" visible={!!achievement} onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Animated.View style={[styles.card, animatedStyle, { borderColor: accent }]}>
-          <Text style={styles.badge}>🎉</Text>
+          <View style={styles.badge}><PartyPopper size={28} color={accent} /></View>
           <Text style={[styles.achievedLabel, { color: accent }]}>Achievement Unlocked!</Text>
           <Text style={styles.icon}>{achievement.icon}</Text>
           <Text style={styles.title}>{achievement.title}</Text>
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  badge: { fontSize: 28, marginBottom: 4 },
+  badge: { marginBottom: 4 },
   achievedLabel: {
     color: "transparent",
     fontSize: 13,

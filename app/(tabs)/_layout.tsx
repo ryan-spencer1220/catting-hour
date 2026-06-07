@@ -1,6 +1,6 @@
 import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Ionicons } from "@expo/vector-icons";
+import { Compass, List, Map, Settings, User } from "lucide-react-native";
 import { Tabs } from "expo-router";
 import React from "react";
 
@@ -22,7 +22,7 @@ export default function TabsLayout() {
         name="map"
         options={{
           title: "Map",
-          tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
         }}
       />
 
@@ -30,7 +30,7 @@ export default function TabsLayout() {
         name="nearby"
         options={{
           title: "Nearby",
-          tabBarIcon: ({ color, size }) => <Ionicons name="time" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
         }}
       />
 
@@ -38,7 +38,7 @@ export default function TabsLayout() {
         name="feed"
         options={{
           title: "Feed",
-          tabBarIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <List color={color} size={size} />,
         }}
       />
 
@@ -46,7 +46,7 @@ export default function TabsLayout() {
         name="my-cats"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
 
@@ -54,7 +54,7 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }}
       />
 

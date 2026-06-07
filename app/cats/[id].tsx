@@ -5,7 +5,7 @@ import { deleteCat, fetchCatById } from "@/lib/cats";
 import { fetchLikes, likeCat, unlikeCat } from "@/lib/likes";
 import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
+import { ChevronLeft, ChevronRight, Heart, PawPrint } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -282,7 +282,7 @@ export default function CatDetail() {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
         <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <ChevronLeft size={28} color="#fff" />
         </Pressable>
         <Text style={{ color: textPrimary, fontSize: 16 }}>Cat not found</Text>
       </View>
@@ -328,7 +328,7 @@ export default function CatDetail() {
             </ScrollView>
           ) : (
             <View style={[styles.placeholder, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
-              <Text style={styles.placeholderEmoji}>🐾</Text>
+              <PawPrint size={64} color="#9ca3af" />
               <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
             </View>
           )}
@@ -339,7 +339,7 @@ export default function CatDetail() {
               style={[styles.swipeArrow, styles.swipeArrowLeft]}
               onPress={() => scrollToPhoto(activePhotoIndex - 1)}
             >
-              <Text style={styles.swipeArrowText}>‹</Text>
+              <ChevronLeft size={26} color="#fff" />
             </Pressable>
           )}
           {showDots && activePhotoIndex < photoUrls.length - 1 && (
@@ -347,7 +347,7 @@ export default function CatDetail() {
               style={[styles.swipeArrow, styles.swipeArrowRight]}
               onPress={() => scrollToPhoto(activePhotoIndex + 1)}
             >
-              <Text style={styles.swipeArrowText}>›</Text>
+              <ChevronRight size={26} color="#fff" />
             </Pressable>
           )}
 
@@ -411,10 +411,10 @@ export default function CatDetail() {
 
           {/* Like button */}
           <Pressable style={styles.likeRow} onPress={handleToggleLike} disabled={likeLoading}>
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={26}
+            <Heart
+              size={24}
               color={liked ? "#ef4444" : textMuted}
+              fill={liked ? "#ef4444" : "none"}
             />
             <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
               {likeCount > 0 ? likeCount : ""}
@@ -546,7 +546,7 @@ export default function CatDetail() {
 
       {/* Back button — fixed over hero */}
       <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
-        <Text style={styles.backBtnText}>‹</Text>
+        <ChevronLeft size={28} color="#fff" />
       </Pressable>
     </KeyboardAvoidingView>
   );
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
 
   imageContainer: { height: IMAGE_HEIGHT },
   placeholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
-  placeholderEmoji: { fontSize: 72 },
+  placeholderEmoji: {},
   placeholderLabel: { marginTop: 8, fontSize: 14 },
 
   dots: {
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   },
   swipeArrowLeft: { left: 10 },
   swipeArrowRight: { right: 10 },
-  swipeArrowText: { color: "#fff", fontSize: 26, lineHeight: 30, fontWeight: "300" },
+  swipeArrowText: {},
 
   addPhotoBtn: {
     position: "absolute",
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 10,
   },
-  backBtnText: { color: "#fff", fontSize: 26, lineHeight: 30, marginTop: -2 },
+  backBtnText: {},
 
   card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 28 },
 

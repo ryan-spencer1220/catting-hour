@@ -22,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
+import { ChevronLeft, ChevronRight, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
@@ -109,7 +110,7 @@ export default function UserProfileScreen() {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
         <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <ChevronLeft size={28} color="#fff" />
         </Pressable>
         <Text style={{ color: textPrimary }}>User not found</Text>
       </View>
@@ -203,7 +204,7 @@ export default function UserProfileScreen() {
               <FadeImage uri={item.image} style={styles.catThumb} />
             ) : (
               <View style={[styles.catThumb, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb", alignItems: "center", justifyContent: "center" }]}>
-                <Text style={{ fontSize: 22 }}>🐾</Text>
+                <PawPrint size={22} color={dark ? "#6b7280" : "#9ca3af"} />
               </View>
             )}
             <View style={styles.catInfo}>
@@ -212,7 +213,7 @@ export default function UserProfileScreen() {
                 <Text style={[styles.catMeta, { color: textMuted }]}>{item.type}</Text>
               ) : null}
             </View>
-            <Text style={{ color: textMuted, fontSize: 20 }}>›</Text>
+            <ChevronRight size={20} color={textMuted} />
           </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: { color: "#fff", fontSize: 26, lineHeight: 30, marginTop: -2 },
+  backBtnText: {},
 
   header: {
     alignItems: "center",

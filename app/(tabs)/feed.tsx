@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
+import { Cat } from "lucide-react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 export default function RecentlyScreen() {
@@ -75,9 +76,10 @@ export default function RecentlyScreen() {
   return (
     <SafeAreaView style={[styles.container, dark && styles.darkBg]}>
       <Text style={[styles.heading, dark && styles.darkText]}>Recently Added</Text>
-      <Animated.Text style={[styles.fetchingLabel, dark && styles.fetchingLabelDark, fetchingStyle]}>
-        🐱 fetching cats...
-      </Animated.Text>
+      <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
+        <Cat size={13} color={dark ? "#6b7280" : "#9ca3af"} />
+        <Text style={[styles.fetchingLabelText, dark && styles.fetchingLabelDark]}>fetching cats...</Text>
+      </Animated.View>
       {cats === null ? (
         <ActivityIndicator color={dark ? "#fff" : "#111"} />
       ) : (
@@ -117,6 +119,7 @@ const styles = StyleSheet.create({
   time: { color: "#9ca3af", marginTop: 2, fontSize: 12 },
   sep: { height: 12 },
   heading: { fontSize: 24, fontWeight: "700", color: "#111827", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
-  fetchingLabel: { fontSize: 13, color: "#9ca3af", paddingHorizontal: 16, paddingBottom: 8, fontStyle: "italic" },
+  fetchingLabel: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 16, paddingBottom: 8 },
+  fetchingLabelText: { fontSize: 13, color: "#9ca3af", fontStyle: "italic" },
   fetchingLabelDark: { color: "#6b7280" },
 });

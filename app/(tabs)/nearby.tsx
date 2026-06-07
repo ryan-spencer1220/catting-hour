@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
+import { PawPrint } from "lucide-react-native";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
@@ -99,7 +100,7 @@ export default function RecentlyScreen() {
           <FadeImage uri={item.image} style={styles.image} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
-            <Text style={{ fontSize: 22 }}>🐾</Text>
+            <PawPrint size={22} color={dark ? "#6b7280" : "#9ca3af"} />
           </View>
         )}
         <View style={styles.info}>
