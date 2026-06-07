@@ -358,8 +358,9 @@ export default function CatDetail() {
             </ScrollView>
           ) : (
             <View style={[styles.placeholder, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
-              <PawPrint size={64} color="#9ca3af" />
+              <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} />
               <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
+              <Text style={[styles.placeholderSub, { color: textMuted }]}>Tap + Photo to add one</Text>
             </View>
           )}
 
@@ -519,7 +520,7 @@ export default function CatDetail() {
           {checkinsLoading ? (
             <ActivityIndicator size="small" color={dark ? accent : "#111827"} style={{ marginTop: 16 }} />
           ) : checkins.length === 0 ? (
-            <Text style={[styles.emptyCheckins, { color: textMuted }]}>No check-ins yet — be the first!</Text>
+            <Text style={[styles.emptyCheckins, { color: textMuted }]}>No sightings logged yet — be the first! 🐾</Text>
           ) : (
             checkins.map((c) => (
               <Pressable
@@ -684,8 +685,8 @@ const styles = StyleSheet.create({
 
   imageContainer: { height: IMAGE_HEIGHT },
   placeholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
-  placeholderEmoji: {},
-  placeholderLabel: { marginTop: 8, fontSize: 14 },
+  placeholderLabel: { marginTop: 8, fontSize: 14, fontWeight: "600" },
+  placeholderSub: { fontSize: 12, marginTop: 4 },
 
   dots: {
     position: "absolute",

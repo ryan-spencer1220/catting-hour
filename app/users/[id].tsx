@@ -23,6 +23,7 @@ import {
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
 import { Skeleton } from "@/components/skeleton";
+import { EmptyState } from "@/components/empty-state";
 import { ChevronLeft, MapPin, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -218,7 +219,11 @@ export default function UserProfileScreen() {
           </View>
         }
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: textMuted }]}>No cats added yet</Text>
+          <EmptyState
+            icon={<PawPrint size={36} color={accent} />}
+            title="No cats yet"
+            body={isOwnProfile ? "You haven't added any cats. Get out there!" : "This user hasn't spotted any cats yet."}
+          />
         }
         renderItem={({ item }) => (
           <Pressable
@@ -319,5 +324,4 @@ const styles = StyleSheet.create({
   gridName: { fontSize: 13, fontWeight: "700" },
   gridMeta: { fontSize: 12, marginTop: 2 },
 
-  empty: { textAlign: "center", marginTop: 32, fontSize: 14 },
 });

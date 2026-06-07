@@ -14,7 +14,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
 import { Skeleton } from "@/components/skeleton";
-import { PawPrint } from "lucide-react-native";
+import { EmptyState } from "@/components/empty-state";
+import { MapPin, PawPrint } from "lucide-react-native";
+import * as Linking from "expo-linking";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
@@ -152,10 +154,13 @@ export default function RecentlyScreen() {
           ))}
         </View>
       ) : locationDenied ? (
-        <View style={styles.empty}>
-          <Text style={[styles.emptyText, { color: textMuted }]}>
-            Location access is required to show nearby cats.
-          </Text>
+        <View style={{ flex: 1 }}>
+          <EmptyState
+            icon={<MapPin size={36} color={accent} />}
+            title="We don't know where you are"
+            body="Enable location access so we can find cats in your neighbourhood."
+            cta={{ label: "Open Settings", onPress: () => Linking.openSettings() }}
+          />
         </View>
       ) : (
         <FlatList
@@ -163,13 +168,13 @@ export default function RecentlyScreen() {
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          contentContainerStyle={{ padding: 12, paddingTop: 8 }}
+          contentContainerStyle={{ padding: 12, paddingTop: 8, flexGrow: 1 }}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={[styles.emptyText, { color: textMuted }]}>
-                No cats found within {radius} {radius === 1 ? "mile" : "miles"}.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<PawPrint size={36} color={accent} />}
+              title="No cats spotted nearby"
+              body={`They must be napping. Try widening the search radius or add one yourself.`}
+            />
           }
         />
       )}
@@ -224,6 +229,4 @@ const styles = StyleSheet.create({
   sub: { fontSize: 12, marginTop: 2 },
   distance: { fontSize: 13, fontWeight: "700" },
 
-  empty: { flex: 1, alignItems: "center", paddingTop: 48, paddingHorizontal: 32 },
-  emptyText: { fontSize: 15, textAlign: "center", lineHeight: 22 },
 });

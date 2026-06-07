@@ -7,6 +7,7 @@ import { Cat, PawPrint, Users } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Skeleton } from "@/components/skeleton";
+import { EmptyState } from "@/components/empty-state";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -139,29 +140,29 @@ export default function FeedScreen() {
     if (cats === null) return null;
     if (filter === "following" && !currentUserId) {
       return (
-        <View style={styles.emptyState}>
-          <Users size={40} color={textMuted} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sign in to see your feed</Text>
-          <Text style={[styles.emptyBody, { color: textMuted }]}>Follow people to see their cats here.</Text>
-        </View>
+        <EmptyState
+          icon={<Users size={36} color={accent} />}
+          title="Sign in to see your feed"
+          body="Follow cat lovers to see their latest sightings right here."
+          cta={{ label: "Sign in", onPress: () => router.push("/(auth)/login") }}
+        />
       );
     }
     if (filter === "following") {
       return (
-        <View style={styles.emptyState}>
-          <Users size={40} color={textMuted} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Nobody followed yet</Text>
-          <Text style={[styles.emptyBody, { color: textMuted }]}>
-            Visit a user's profile and tap Follow to see their cats here.
-          </Text>
-        </View>
+        <EmptyState
+          icon={<Users size={36} color={accent} />}
+          title="Your feed is a little lonely"
+          body="Follow some cat lovers and their latest finds will show up here."
+        />
       );
     }
     return (
-      <View style={styles.emptyState}>
-        <Cat size={40} color={textMuted} />
-        <Text style={[styles.emptyTitle, { color: textPrimary }]}>No cats yet</Text>
-      </View>
+      <EmptyState
+        icon={<Cat size={36} color={accent} />}
+        title="The streets are quiet"
+        body="No cats have been spotted yet. Be the first to put one on the map!"
+      />
     );
   }
 
@@ -311,14 +312,4 @@ const styles = StyleSheet.create({
   addedBy: { fontSize: 12, flex: 1 },
   time: { fontSize: 12 },
 
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-    gap: 12,
-    paddingBottom: 60,
-  },
-  emptyTitle: { fontSize: 17, fontWeight: "700", textAlign: "center" },
-  emptyBody: { fontSize: 14, textAlign: "center", lineHeight: 20 },
 });
