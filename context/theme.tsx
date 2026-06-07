@@ -11,11 +11,11 @@ export type AccentColor = {
 };
 
 export const ACCENT_COLORS: AccentColor[] = [
-  { label: "Purple", value: "#a78bfa" },
-  { label: "Blue",   value: "#60a5fa" },
-  { label: "Green",  value: "#34d399" },
-  { label: "Rose",   value: "#f472b6" },
-  { label: "Orange", value: "#fb923c" },
+  { label: "Navy",    value: "#1B5091" },
+  { label: "Teal",    value: "#279D9F" },
+  { label: "Amber",   value: "#FFA74F" },
+  { label: "Pink",    value: "#E881A6" },
+  { label: "Magenta", value: "#CE3375" },
 ];
 
 const THEME_STORAGE_KEY = "@theme_preference";
