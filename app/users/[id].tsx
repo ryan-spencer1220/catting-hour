@@ -19,10 +19,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
-import { ChevronLeft, ChevronRight, MapPin, PawPrint } from "lucide-react-native";
+import { ChevronLeft, MapPin, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
@@ -32,6 +33,7 @@ export default function UserProfileScreen() {
   const dark = colorScheme === "dark";
   const accent = useAccent();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   const bg = dark ? "#0f1720" : "#f5f5f7";
   const card = dark ? "#1a2535" : "#fff";
@@ -98,6 +100,10 @@ export default function UserProfileScreen() {
   const displayName = profile?.username ?? "Unknown user";
   const initials = displayName.slice(0, 2).toUpperCase();
 
+  const GRID_H_PAD = 12;
+  const GRID_GAP = 8;
+  const cardWidth = (screenWidth - GRID_H_PAD * 2 - GRID_GAP) / 2;
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
@@ -122,11 +128,14 @@ export default function UserProfileScreen() {
       <FlatList
         data={cats}
         keyExtractor={(c) => c.id}
+        numColumns={2}
+        columnWrapperStyle={{ paddingHorizontal: GRID_H_PAD, gap: GRID_GAP }}
+        ItemSeparatorComponent={() => <View style={{ height: GRID_GAP }} />}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
           <View>
             {/* Header band */}
-            <View style={[styles.header, { paddingTop: insets.top + 56, backgroundColor: accent }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: accent }]}>
               {profile.avatarUrl ? (
                 <FadeImage uri={profile.avatarUrl} style={styles.avatar} />
               ) : (
@@ -143,7 +152,7 @@ export default function UserProfileScreen() {
                 </View>
               ) : null}
 
-              {/* Follow counts */}
+              {/* Stats row */}
               <View style={styles.countsRow}>
                 <View style={styles.countItem}>
                   <Text style={styles.countNumber}>{followCounts.followers}</Text>
@@ -161,7 +170,6 @@ export default function UserProfileScreen() {
                 </View>
               </View>
 
-              {/* Follow / Unfollow button */}
               {!isOwnProfile && (
                 <Pressable
                   style={[
@@ -177,16 +185,10 @@ export default function UserProfileScreen() {
                   </Text>
                 </Pressable>
               )}
-
-              {isOwnProfile && (
-                <Text style={[styles.ownProfileNote, { color: "rgba(255,255,255,0.6)" }]}>
-                  This is your profile
-                </Text>
-              )}
             </View>
 
             {/* Cats section header */}
-            <Text style={[styles.sectionLabel, { color: textMuted, paddingHorizontal: 16, paddingTop: 24, paddingBottom: 8 }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>
               Cats added
             </Text>
           </View>
@@ -196,26 +198,24 @@ export default function UserProfileScreen() {
         }
         renderItem={({ item }) => (
           <Pressable
-            style={[styles.catRow, { backgroundColor: card }]}
+            style={[styles.gridCard, { backgroundColor: card, width: cardWidth }]}
             onPress={() => router.push(`/cats/${item.id}`)}
           >
             {item.image ? (
-              <FadeImage uri={item.image} style={styles.catThumb} />
+              <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth * 0.85, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
             ) : (
-              <View style={[styles.catThumb, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb", alignItems: "center", justifyContent: "center" }]}>
-                <PawPrint size={22} color={dark ? "#6b7280" : "#9ca3af"} />
+              <View style={[styles.gridPlaceholder, { width: cardWidth, height: cardWidth * 0.85, backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
+                <PawPrint size={28} color={dark ? "#6b7280" : "#9ca3af"} />
               </View>
             )}
-            <View style={styles.catInfo}>
-              <Text style={[styles.catName, { color: textPrimary }]}>{item.name}</Text>
+            <View style={styles.gridInfo}>
+              <Text style={[styles.gridName, { color: textPrimary }]} numberOfLines={1}>{item.name}</Text>
               {item.type ? (
-                <Text style={[styles.catMeta, { color: textMuted }]}>{item.type}</Text>
+                <Text style={[styles.gridMeta, { color: textMuted }]} numberOfLines={1}>{item.type}</Text>
               ) : null}
             </View>
-            <ChevronRight size={20} color={textMuted} />
           </Pressable>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       />
     </View>
   );
@@ -236,49 +236,64 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   header: {
     alignItems: "center",
-    paddingBottom: 32,
+    paddingBottom: 20,
     paddingHorizontal: 24,
   },
-  avatar: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)", marginBottom: 12 },
+  avatar: { width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)", marginBottom: 10 },
   avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
-  initials: { color: "#fff", fontSize: 28, fontWeight: "700" },
-  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  city: { color: "rgba(255,255,255,0.8)", fontSize: 14 },
+  initials: { color: "#fff", fontSize: 24, fontWeight: "700" },
+  displayName: { color: "#fff", fontSize: 20, fontWeight: "800", textAlign: "center" },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  city: { color: "rgba(255,255,255,0.8)", fontSize: 13 },
 
-  countsRow: { flexDirection: "row", alignItems: "center", marginTop: 20, gap: 8 },
-  countItem: { alignItems: "center", paddingHorizontal: 16 },
-  countNumber: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  countLabel: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 },
-  countDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.3)" },
+  countsRow: { flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 },
+  countItem: { alignItems: "center", paddingHorizontal: 14 },
+  countNumber: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  countLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 },
+  countDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.3)" },
 
   followBtn: {
-    marginTop: 20,
+    marginTop: 14,
     paddingHorizontal: 36,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 24,
     backgroundColor: "#fff",
   },
   followingBtn: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)" },
-  followBtnText: { fontWeight: "700", fontSize: 15 },
+  followBtnText: { fontWeight: "700", fontSize: 14 },
   followingBtnText: { color: "#fff" },
-  ownProfileNote: { marginTop: 16, fontSize: 13 },
 
-  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-
-  catRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 16,
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 10,
   },
-  catThumb: { width: 56, height: 56, borderRadius: 8 },
-  catInfo: { flex: 1 },
-  catName: { fontSize: 15, fontWeight: "700" },
-  catMeta: { fontSize: 13, marginTop: 2 },
+
+  gridCard: {
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  gridPlaceholder: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridInfo: { padding: 9 },
+  gridName: { fontSize: 13, fontWeight: "700" },
+  gridMeta: { fontSize: 12, marginTop: 2 },
+
   empty: { textAlign: "center", marginTop: 32, fontSize: 14 },
 });
