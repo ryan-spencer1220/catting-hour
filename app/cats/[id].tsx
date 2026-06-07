@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
+import { Skeleton } from "@/components/skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const IMAGE_HEIGHT = 300;
@@ -278,8 +279,30 @@ export default function CatDetail() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={dark ? accent : "#111827"} />
+      <View style={[styles.screen, { backgroundColor: bg }]}>
+        <Skeleton style={{ width: screenWidth, height: IMAGE_HEIGHT }} radius={0} />
+        <View style={[styles.card, { backgroundColor: bg }]}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <Skeleton style={{ height: 38, flex: 1 }} radius={6} />
+            <Skeleton style={{ width: 36, height: 36, borderRadius: 18 }} />
+          </View>
+          <Skeleton style={{ height: 14, width: "38%", marginTop: 10 }} />
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 18 }}>
+            <Skeleton style={{ height: 28, width: 72 }} radius={20} />
+            <Skeleton style={{ height: 28, width: 88 }} radius={20} />
+            <Skeleton style={{ height: 28, width: 66 }} radius={20} />
+          </View>
+          <View style={[styles.divider, { backgroundColor: dividerColor, marginTop: 28 }]} />
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 18 }}>
+              <Skeleton style={{ height: 14, width: "28%" }} />
+              <Skeleton style={{ height: 14, width: "38%" }} />
+            </View>
+          ))}
+        </View>
+        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+          <ChevronLeft size={28} color="#fff" />
+        </Pressable>
       </View>
     );
   }

@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { Cat, PawPrint, Users } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Skeleton } from "@/components/skeleton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -191,7 +192,7 @@ export default function FeedScreen() {
       </View>
 
       {cats === null ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={dark ? "#fff" : "#111"} />
+        <FeedSkeleton card={card} />
       ) : (
         <FlatList
           data={sorted}
@@ -213,6 +214,32 @@ export default function FeedScreen() {
     </SafeAreaView>
   );
 }
+
+function FeedSkeleton({ card }: { card: string }) {
+  return (
+    <View style={{ padding: 12, gap: 12 }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={[feedSkeletonStyles.card, { backgroundColor: card }]}>
+          <Skeleton style={{ width: "100%", height: 180 }} radius={0} />
+          <View style={feedSkeletonStyles.info}>
+            <Skeleton style={{ height: 20, width: "55%" }} />
+            <Skeleton style={{ height: 18, width: "32%", borderRadius: 999 }} />
+            <View style={feedSkeletonStyles.footer}>
+              <Skeleton style={{ height: 13, width: "22%" }} />
+              <Skeleton style={{ height: 13, width: "14%" }} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const feedSkeletonStyles = StyleSheet.create({
+  card: { borderRadius: 16, overflow: "hidden" },
+  info: { padding: 14, gap: 10 },
+  footer: { flexDirection: "row", justifyContent: "space-between" },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

@@ -13,7 +13,6 @@ import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
@@ -23,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
+import { Skeleton } from "@/components/skeleton";
 import { ChevronLeft, MapPin, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -106,8 +106,32 @@ export default function UserProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator color={dark ? accent : "#111827"} />
+      <View style={[styles.screen, { backgroundColor: bg }]}>
+        {/* Header band */}
+        <View style={{ paddingTop: insets.top + 8, paddingBottom: 20, paddingHorizontal: 24, backgroundColor: accent, alignItems: "center" }}>
+          <Skeleton style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 10 }} light />
+          <Skeleton style={{ height: 20, width: 130, marginBottom: 6 }} light />
+          <Skeleton style={{ height: 13, width: 80 }} light />
+          <View style={{ flexDirection: "row", marginTop: 14, gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={{ alignItems: "center", paddingHorizontal: 14 }}>
+                <Skeleton style={{ height: 18, width: 28, marginBottom: 5 }} light />
+                <Skeleton style={{ height: 11, width: 52 }} light />
+              </View>
+            ))}
+          </View>
+          <Skeleton style={{ height: 36, width: 140, borderRadius: 24, marginTop: 14 }} light />
+        </View>
+        {/* Grid placeholder */}
+        <View style={{ padding: 12, gap: 8 }}>
+          {[0, 1].map((row) => (
+            <View key={row} style={{ flexDirection: "row", gap: 8 }}>
+              {[0, 1].map((col) => (
+                <Skeleton key={col} style={{ flex: 1, height: cardWidth * 0.85 + 50, borderRadius: 12 }} />
+              ))}
+            </View>
+          ))}
+        </View>
       </View>
     );
   }

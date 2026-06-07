@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
+import { Skeleton } from "@/components/skeleton";
 import { Calendar, Cat, Clock, Globe, Lock, MapPin, PawPrint, Pencil } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -303,7 +304,10 @@ export default function ProfileScreen() {
 
         {/* Info column */}
         {loading ? (
-          <ActivityIndicator color="#fff" style={{ flex: 1 }} />
+          <View style={{ flex: 1, gap: 10, justifyContent: "center" }}>
+            <Skeleton style={{ height: 22, width: 130 }} light />
+            <Skeleton style={{ height: 14, width: 80 }} light />
+          </View>
         ) : (
           <View style={styles.headerInfo}>
             {editingUsername ? (
@@ -493,7 +497,7 @@ function StatRow({
       <Text style={[styles.statRowLabel, { color: textMuted }]}>{label}</Text>
       <View style={styles.statRowRight}>
         {value === null ? (
-          <ActivityIndicator size="small" color={textMuted} />
+          <Skeleton style={{ height: 15, width: 60 }} />
         ) : (
           <Text style={[styles.statRowValue, { color: textPrimary }]}>{value}</Text>
         )}

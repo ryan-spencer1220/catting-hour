@@ -5,7 +5,6 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
+import { Skeleton } from "@/components/skeleton";
 import { PawPrint } from "lucide-react-native";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
@@ -140,7 +140,17 @@ export default function RecentlyScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} color={dark ? accent : "#111827"} />
+        <View style={{ padding: 12, paddingTop: 8, gap: 8 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={{ flexDirection: "row", gap: 12, backgroundColor: card, padding: 12, borderRadius: 12, alignItems: "center" }}>
+              <Skeleton style={{ width: 56, height: 56, borderRadius: 8 }} />
+              <View style={{ flex: 1, gap: 9 }}>
+                <Skeleton style={{ height: 15, width: "55%" }} />
+                <Skeleton style={{ height: 13, width: "35%" }} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : locationDenied ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: textMuted }]}>
