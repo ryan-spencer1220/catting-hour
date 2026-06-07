@@ -75,7 +75,8 @@ export default function CatDetail() {
   const [addingPhoto, setAddingPhoto] = useState(false);
   const photoScrollRef = useRef<ScrollView>(null);
   const lightboxScrollRef = useRef<ScrollView>(null);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const [locationName, setLocationName] = useState<string | null>(null);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
@@ -325,7 +326,7 @@ export default function CatDetail() {
                 <Pressable
                   key={i}
                   style={{ width: screenWidth, height: IMAGE_HEIGHT }}
-                  onPress={() => setLightboxIndex(i)}
+                  onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
                   onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
                 >
                   <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
@@ -557,13 +558,13 @@ export default function CatDetail() {
 
       {/* ── Lightbox ── */}
       <Modal
-        visible={lightboxIndex !== null}
+        visible={lightboxVisible}
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => setLightboxIndex(null)}
+        onRequestClose={() => setLightboxVisible(false)}
         onShow={() => {
-          if (lightboxIndex != null && lightboxIndex > 0) {
+          if (lightboxIndex > 0) {
             lightboxScrollRef.current?.scrollTo({ x: lightboxIndex * screenWidth, animated: false });
           }
         }}
@@ -577,8 +578,7 @@ export default function CatDetail() {
             showsHorizontalScrollIndicator={false}
             scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-              setLightboxIndex(idx);
+              setLightboxIndex(Math.round(e.nativeEvent.contentOffset.x / screenWidth));
             }}
           >
             {photoUrls.map((url, i) => (
@@ -595,7 +595,7 @@ export default function CatDetail() {
           {/* Close */}
           <Pressable
             style={[styles.lightboxClose, { top: insets.top + 12 }]}
-            onPress={() => setLightboxIndex(null)}
+            onPress={() => setLightboxVisible(false)}
             hitSlop={12}
           >
             <Text style={styles.lightboxCloseText}>✕</Text>
@@ -605,17 +605,17 @@ export default function CatDetail() {
           {photoUrls.length > 1 && (
             <View style={[styles.lightboxCounter, { bottom: insets.bottom + 24 }]}>
               <Text style={styles.lightboxCounterText}>
-                {(lightboxIndex ?? 0) + 1} / {photoUrls.length}
+                {lightboxIndex + 1} / {photoUrls.length}
               </Text>
             </View>
           )}
 
           {/* Prev arrow */}
-          {(lightboxIndex ?? 0) > 0 && (
+          {lightboxIndex > 0 && (
             <Pressable
               style={[styles.lightboxArrow, styles.lightboxArrowLeft]}
               onPress={() => {
-                const next = (lightboxIndex ?? 0) - 1;
+                const next = lightboxIndex - 1;
                 lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
                 setLightboxIndex(next);
               }}
@@ -625,11 +625,11 @@ export default function CatDetail() {
           )}
 
           {/* Next arrow */}
-          {(lightboxIndex ?? 0) < photoUrls.length - 1 && (
+          {lightboxIndex < photoUrls.length - 1 && (
             <Pressable
               style={[styles.lightboxArrow, styles.lightboxArrowRight]}
               onPress={() => {
-                const next = (lightboxIndex ?? 0) + 1;
+                const next = lightboxIndex + 1;
                 lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
                 setLightboxIndex(next);
               }}
