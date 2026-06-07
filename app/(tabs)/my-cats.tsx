@@ -280,9 +280,9 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ── Header band ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 24, backgroundColor: accent }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: accent }]}>
 
-        {/* Avatar */}
+        {/* Avatar column */}
         <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
           {uploadingAvatar ? (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
@@ -300,10 +300,11 @@ export default function ProfileScreen() {
           </View>
         </Pressable>
 
+        {/* Info column */}
         {loading ? (
-          <ActivityIndicator color="#fff" style={{ marginTop: 16 }} />
+          <ActivityIndicator color="#fff" style={{ flex: 1 }} />
         ) : (
-          <>
+          <View style={styles.headerInfo}>
             {editingUsername ? (
               <View style={styles.cityEditRow}>
                 <TextInput
@@ -324,14 +325,12 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <Pressable onPress={startEditUsername}>
-                <Text style={styles.displayName}>
-                  {displayName || "Set username"}
-                </Text>
+                <Text style={styles.displayName}>{displayName || "Set username"}</Text>
               </Pressable>
             )}
-            {/* City */}
+
             {editingCity ? (
-              <View style={styles.cityEditRow}>
+              <View style={[styles.cityEditRow, { marginTop: 6 }]}>
                 <TextInput
                   style={[styles.cityInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
                   value={cityDraft}
@@ -347,10 +346,8 @@ export default function ProfileScreen() {
                 </Pressable>
               </View>
             ) : (
-              <Pressable style={styles.cityRow} onPress={startEditCity}>
-                <Text style={styles.cityText}>
-                  {city ? `📍 ${city}` : "📍 Add location"}
-                </Text>
+              <Pressable onPress={startEditCity}>
+                <Text style={styles.cityText}>{city ? `📍 ${city}` : "📍 Add location"}</Text>
               </Pressable>
             )}
 
@@ -370,7 +367,7 @@ export default function ProfileScreen() {
                 <Text style={styles.followCountLabel}>Following</Text>
               </View>
             </View>
-          </>
+          </View>
         )}
       </View>
 
@@ -506,54 +503,57 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    gap: 16,
   },
 
-  avatarWrap: { position: "relative", marginBottom: 14 },
-  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)" },
+  avatarWrap: { position: "relative", flexShrink: 0 },
+  avatar: { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)" },
   avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
-  initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
+  initials: { color: "#fff", fontSize: 28, fontWeight: "700" },
   avatarEditBadge: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  avatarEditIcon: { fontSize: 13, lineHeight: 18 },
+  avatarEditIcon: { fontSize: 12, lineHeight: 17 },
 
-  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
+  headerInfo: { flex: 1 },
 
-  cityRow: { marginTop: 8 },
-  cityText: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
-  cityEditRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  displayName: { color: "#fff", fontSize: 18, fontWeight: "800" },
+
+  cityText: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
+  cityEditRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   cityInput: {
-    flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7,
-    fontSize: 14,
+    flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    fontSize: 13,
   },
   citySaveBtn: {
     backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 8,
   },
-  citySaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  citySaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 
-  memberSince: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 },
+  memberSince: { color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: 4 },
 
-  followCountsRow: { flexDirection: "row", alignItems: "center", marginTop: 16, gap: 8 },
-  followCountItem: { alignItems: "center", paddingHorizontal: 16 },
-  followCountNumber: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  followCountLabel: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 },
-  followCountDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.3)" },
+  followCountsRow: { flexDirection: "row", alignItems: "center", marginTop: 10, gap: 0 },
+  followCountItem: { alignItems: "center", paddingRight: 16 },
+  followCountNumber: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  followCountLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 1 },
+  followCountDivider: { width: 1, height: 24, backgroundColor: "rgba(255,255,255,0.3)", marginRight: 16 },
 
   sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
 
