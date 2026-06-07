@@ -129,14 +129,14 @@ export default function SettingsScreen() {
           <View style={[styles.row, { alignItems: "center" }]}>
             <ThemedText style={styles.rowLabel}>Accent color</ThemedText>
             <View style={styles.swatches}>
-              {ACCENT_COLORS.map((c) => (
+              {ACCENT_COLORS.map(({ value: hex, label }) => (
                 <Pressable
-                  key={c.value}
-                  onPress={() => setAccent(c.value)}
+                  key={hex}
+                  onPress={() => setAccent(hex)}
                   style={[
                     styles.swatch,
-                    { backgroundColor: c.value },
-                    accent === c.value && styles.swatchActive,
+                    { backgroundColor: hex },
+                    accent === hex && styles.swatchActive,
                   ]}
                 />
               ))}

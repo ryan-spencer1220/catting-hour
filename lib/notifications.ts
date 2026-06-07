@@ -1,19 +1,25 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "./supabase";
 
 const PREF_KEY = "@notifications_enabled";
+const isExpoGo = (Constants as any).appOwnership === "expo";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// setNotificationHandler triggers expo-notifications warnings in Expo Go
+// because remote push support was removed from Expo Go in SDK 53.
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function getNotificationPreference(): Promise<boolean> {
   try {
@@ -45,14 +51,16 @@ export async function enableNotifications(): Promise<{ success: boolean; message
     });
   }
 
-  try {
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData?.user?.id;
-    if (userId) {
-      await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
-    }
-  } catch {}
+  if (!isExpoGo) {
+    try {
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (userId) {
+        await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
+      }
+    } catch {}
+  }
 
   await AsyncStorage.setItem(PREF_KEY, "true");
   return { success: true };
