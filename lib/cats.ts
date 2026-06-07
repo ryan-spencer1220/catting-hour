@@ -43,6 +43,22 @@ export async function fetchAllCats(): Promise<Cat[]> {
   return (data || []).map(mapRow).filter(Boolean) as Cat[];
 }
 
+export async function fetchFollowingCats(userId: string): Promise<Cat[]> {
+  const { data: follows } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", userId);
+  const ids = (follows ?? []).map((r: any) => r.following_id as string);
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("cats")
+    .select("*")
+    .in("owner", ids)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapRow).filter(Boolean) as Cat[];
+}
+
 export async function fetchCatById(id: string): Promise<Cat | null> {
   const { data, error } = await supabase.from("cats").select("*").eq("id", id).maybeSingle();
   if (error) throw error;

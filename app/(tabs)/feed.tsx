@@ -1,8 +1,9 @@
 import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { fetchAllCats } from "@/lib/cats";
+import { fetchAllCats, fetchFollowingCats } from "@/lib/cats";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { Cat, PawPrint } from "lucide-react-native";
+import { Cat, PawPrint, Users } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,12 +19,16 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+type Filter = "all" | "following";
+
 export default function FeedScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
   const accent = useAccent();
 
+  const [filter, setFilter] = useState<Filter>("all");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [cats, setCats] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const fetchingOpacity = useSharedValue(0);
@@ -33,13 +38,29 @@ export default function FeedScreen() {
     fetchingOpacity.value = withTiming(visible ? 1 : 0, { duration: 200 });
   }
 
+  // Resolve current user once
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setCurrentUserId(data.session?.user?.id ?? null);
+    });
+  }, []);
+
   async function loadCats(opts?: { refresh?: boolean }) {
     if (opts?.refresh) {
       setRefreshing(true);
       animateFetchLabel(true);
+    } else {
+      setCats(null);
     }
     try {
-      const rows = await fetchAllCats();
+      let rows: any[];
+      if (filter === "following" && currentUserId) {
+        rows = await fetchFollowingCats(currentUserId);
+      } else if (filter === "following") {
+        rows = [];
+      } else {
+        rows = await fetchAllCats();
+      }
       setCats(rows);
     } catch {
       setCats([]);
@@ -54,7 +75,7 @@ export default function FeedScreen() {
   useEffect(() => {
     loadCats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filter, currentUserId]);
 
   const sorted = useMemo(() => {
     try {
@@ -68,6 +89,10 @@ export default function FeedScreen() {
   const textPrimary = dark ? "#fff" : "#111827";
   const textMuted = dark ? "#9ca3af" : "#6b7280";
   const tagBg = dark ? `${accent}22` : `${accent}18`;
+  const toggleBg = dark ? "#1a2535" : "#e5e7eb";
+  const toggleActiveBg = accent;
+  const toggleActiveText = "#fff";
+  const toggleInactiveText = dark ? "#9ca3af" : "#6b7280";
 
   function renderItem({ item }: { item: any }) {
     const tags = [item.type, item.temperament].filter(Boolean);
@@ -76,7 +101,6 @@ export default function FeedScreen() {
         style={[styles.card, { backgroundColor: card }]}
         onPress={() => router.push(`/cats/${item.id}`)}
       >
-        {/* Hero image */}
         {item.image ? (
           <FadeImage uri={item.image} style={styles.hero} />
         ) : (
@@ -84,13 +108,10 @@ export default function FeedScreen() {
             <PawPrint size={40} color={dark ? "#4b5563" : "#d1d5db"} />
           </View>
         )}
-
-        {/* Info */}
         <View style={styles.info}>
           <Text style={[styles.name, { color: textPrimary }]} numberOfLines={1}>
             {item.name}
           </Text>
-
           {tags.length > 0 && (
             <View style={styles.tags}>
               {tags.map((tag: string) => (
@@ -100,7 +121,6 @@ export default function FeedScreen() {
               ))}
             </View>
           )}
-
           <View style={styles.footer}>
             <Text style={[styles.addedBy, { color: textMuted }]} numberOfLines={1}>
               {item.ownerName ? `by ${item.ownerName}` : ""}
@@ -114,13 +134,62 @@ export default function FeedScreen() {
     );
   }
 
+  function renderEmpty() {
+    if (cats === null) return null;
+    if (filter === "following" && !currentUserId) {
+      return (
+        <View style={styles.emptyState}>
+          <Users size={40} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sign in to see your feed</Text>
+          <Text style={[styles.emptyBody, { color: textMuted }]}>Follow people to see their cats here.</Text>
+        </View>
+      );
+    }
+    if (filter === "following") {
+      return (
+        <View style={styles.emptyState}>
+          <Users size={40} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Nobody followed yet</Text>
+          <Text style={[styles.emptyBody, { color: textMuted }]}>
+            Visit a user's profile and tap Follow to see their cats here.
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyState}>
+        <Cat size={40} color={textMuted} />
+        <Text style={[styles.emptyTitle, { color: textPrimary }]}>No cats yet</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: dark ? "#0f1720" : "#f3f4f6" }]}>
-      <Text style={[styles.heading, { color: textPrimary }]}>Recently Added</Text>
-      <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
-        <Cat size={13} color={textMuted} />
-        <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats...</Text>
-      </Animated.View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.heading, { color: textPrimary }]}>Feed</Text>
+        <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
+          <Cat size={13} color={textMuted} />
+          <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats...</Text>
+        </Animated.View>
+      </View>
+
+      {/* Toggle */}
+      <View style={[styles.toggleRow, { backgroundColor: toggleBg }]}>
+        {(["all", "following"] as Filter[]).map((f) => (
+          <Pressable
+            key={f}
+            style={[styles.toggleBtn, filter === f && { backgroundColor: toggleActiveBg }]}
+            onPress={() => setFilter(f)}
+          >
+            <Text style={[styles.toggleText, { color: filter === f ? toggleActiveText : toggleInactiveText }]}>
+              {f === "all" ? "All" : "Following"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {cats === null ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={dark ? "#fff" : "#111"} />
       ) : (
@@ -128,8 +197,9 @@ export default function FeedScreen() {
           data={sorted}
           keyExtractor={(i) => String(i.id)}
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, sorted.length === 0 && { flex: 1 }]}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmpty}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -146,21 +216,41 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
   heading: {
     fontSize: 24,
     fontWeight: "700",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 4,
   },
   fetchingLabel: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
   },
   fetchingLabelText: { fontSize: 13, fontStyle: "italic" },
+
+  toggleRow: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 10,
+    padding: 3,
+    gap: 3,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  toggleText: { fontSize: 14, fontWeight: "600" },
+
   list: { padding: 12, gap: 12 },
 
   card: {
@@ -181,13 +271,10 @@ const styles = StyleSheet.create({
   },
 
   info: { padding: 14, gap: 8 },
-
   name: { fontSize: 18, fontWeight: "700", letterSpacing: -0.3 },
-
   tags: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   tag: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   tagText: { fontSize: 12, fontWeight: "600" },
-
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -196,4 +283,15 @@ const styles = StyleSheet.create({
   },
   addedBy: { fontSize: 12, flex: 1 },
   time: { fontSize: 12 },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap: 12,
+    paddingBottom: 60,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "700", textAlign: "center" },
+  emptyBody: { fontSize: 14, textAlign: "center", lineHeight: 20 },
 });
