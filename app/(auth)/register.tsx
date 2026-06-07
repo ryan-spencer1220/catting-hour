@@ -132,7 +132,7 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  inner: { padding: 24 },
+  inner: { flex: 1, justifyContent: "center", padding: 24 },
   heading: { marginBottom: 8 },
   input: {
     borderWidth: 1,
