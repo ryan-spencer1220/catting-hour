@@ -13,10 +13,13 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -71,6 +74,8 @@ export default function CatDetail() {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [addingPhoto, setAddingPhoto] = useState(false);
   const photoScrollRef = useRef<ScrollView>(null);
+  const lightboxScrollRef = useRef<ScrollView>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const [locationName, setLocationName] = useState<string | null>(null);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
@@ -320,6 +325,7 @@ export default function CatDetail() {
                 <Pressable
                   key={i}
                   style={{ width: screenWidth, height: IMAGE_HEIGHT }}
+                  onPress={() => setLightboxIndex(i)}
                   onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
                 >
                   <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
@@ -548,6 +554,91 @@ export default function CatDetail() {
       <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <ChevronLeft size={28} color="#fff" />
       </Pressable>
+
+      {/* ── Lightbox ── */}
+      <Modal
+        visible={lightboxIndex !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setLightboxIndex(null)}
+        onShow={() => {
+          if (lightboxIndex != null && lightboxIndex > 0) {
+            lightboxScrollRef.current?.scrollTo({ x: lightboxIndex * screenWidth, animated: false });
+          }
+        }}
+      >
+        <StatusBar hidden />
+        <View style={styles.lightboxBg}>
+          <ScrollView
+            ref={lightboxScrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={(e) => {
+              const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+              setLightboxIndex(idx);
+            }}
+          >
+            {photoUrls.map((url, i) => (
+              <View key={i} style={{ width: screenWidth, height: "100%", justifyContent: "center" }}>
+                <Image
+                  source={{ uri: url }}
+                  style={{ width: screenWidth, height: "100%" }}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Close */}
+          <Pressable
+            style={[styles.lightboxClose, { top: insets.top + 12 }]}
+            onPress={() => setLightboxIndex(null)}
+            hitSlop={12}
+          >
+            <Text style={styles.lightboxCloseText}>✕</Text>
+          </Pressable>
+
+          {/* Page counter */}
+          {photoUrls.length > 1 && (
+            <View style={[styles.lightboxCounter, { bottom: insets.bottom + 24 }]}>
+              <Text style={styles.lightboxCounterText}>
+                {(lightboxIndex ?? 0) + 1} / {photoUrls.length}
+              </Text>
+            </View>
+          )}
+
+          {/* Prev arrow */}
+          {(lightboxIndex ?? 0) > 0 && (
+            <Pressable
+              style={[styles.lightboxArrow, styles.lightboxArrowLeft]}
+              onPress={() => {
+                const next = (lightboxIndex ?? 0) - 1;
+                lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
+                setLightboxIndex(next);
+              }}
+            >
+              <ChevronLeft size={28} color="#fff" />
+            </Pressable>
+          )}
+
+          {/* Next arrow */}
+          {(lightboxIndex ?? 0) < photoUrls.length - 1 && (
+            <Pressable
+              style={[styles.lightboxArrow, styles.lightboxArrowRight]}
+              onPress={() => {
+                const next = (lightboxIndex ?? 0) + 1;
+                lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
+                setLightboxIndex(next);
+              }}
+            >
+              <ChevronRight size={28} color="#fff" />
+            </Pressable>
+          )}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -655,6 +746,39 @@ const styles = StyleSheet.create({
   checkinItem: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 10 },
   checkinNote: { fontSize: 14, lineHeight: 20 },
   checkinTime: { fontSize: 12, marginTop: 4 },
+
+  lightboxBg: { flex: 1, backgroundColor: "#000" },
+  lightboxClose: {
+    position: "absolute",
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxCloseText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  lightboxCounter: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  lightboxCounterText: { color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: "600" },
+  lightboxArrow: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -24,
+    width: 44,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 10,
+  },
+  lightboxArrowLeft: { left: 10 },
+  lightboxArrowRight: { right: 10 },
 
   actions: { flexDirection: "row", gap: 12, marginTop: 32 },
   editBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: "center" },
