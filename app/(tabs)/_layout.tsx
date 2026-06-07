@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -5,7 +6,8 @@ import React from "react";
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
-  const activeTint = colorScheme === "dark" ? "#a78bfa" : "#111827";
+  const accent = useAccent();
+  const activeTint = colorScheme === "dark" ? accent : "#111827";
   const bg = colorScheme === "dark" ? "#0b1220" : "#fff";
 
   return (
@@ -25,9 +27,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="recently"
+        name="nearby"
         options={{
-          title: "Recently",
+          title: "Nearby",
           tabBarIcon: ({ color, size }) => <Ionicons name="time" color={color} size={size} />,
         }}
       />

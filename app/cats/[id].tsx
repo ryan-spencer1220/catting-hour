@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { addCheckin, deleteCheckin, fetchCheckins, type Checkin } from "@/lib/checkins";
 import { deleteCat, fetchCatById } from "@/lib/cats";
@@ -25,7 +26,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PURPLE = "#a78bfa";
 const IMAGE_HEIGHT = 300;
 
 function timeAgo(dateStr: string): string {
@@ -47,6 +47,7 @@ export default function CatDetail() {
   const { width: screenWidth } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
 
   const bg = dark ? "#0f1720" : "#fff";
@@ -272,7 +273,7 @@ export default function CatDetail() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={dark ? PURPLE : "#111827"} />
+        <ActivityIndicator size="large" color={dark ? accent : "#111827"} />
       </View>
     );
   }
@@ -384,7 +385,7 @@ export default function CatDetail() {
               onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
               disabled={!cat.owner}
             >
-              <Text style={[styles.addedBy, { color: textMuted }, cat.owner && styles.addedByTappable]}>
+              <Text style={[styles.addedBy, { color: textMuted }, cat.owner && [styles.addedByTappable, { color: accent }]]}>
                 Added by {cat.ownerName}
               </Text>
             </Pressable>
@@ -402,7 +403,7 @@ export default function CatDetail() {
               </View>
             ) : null}
             <View style={[styles.badge, { backgroundColor: dark ? "#2d1f4e" : "#ede9fe" }]}>
-              <Text style={[styles.badgeText, { color: dark ? PURPLE : "#6d28d9" }]}>
+              <Text style={[styles.badgeText, { color: dark ? accent : "#6d28d9" }]}>
                 {cat.indoor ? "Indoor" : "Outdoor"}
               </Text>
             </View>
@@ -472,7 +473,7 @@ export default function CatDetail() {
             <Pressable
               style={[
                 styles.postBtn,
-                { backgroundColor: dark ? PURPLE : "#111827" },
+                { backgroundColor: dark ? accent : "#111827" },
                 (!newNote.trim() || submitting) && { opacity: 0.4 },
               ]}
               onPress={handleAddCheckin}
@@ -483,7 +484,7 @@ export default function CatDetail() {
           </View>
 
           {checkinsLoading ? (
-            <ActivityIndicator size="small" color={dark ? PURPLE : "#111827"} style={{ marginTop: 16 }} />
+            <ActivityIndicator size="small" color={dark ? accent : "#111827"} style={{ marginTop: 16 }} />
           ) : checkins.length === 0 ? (
             <Text style={[styles.emptyCheckins, { color: textMuted }]}>No check-ins yet — be the first!</Text>
           ) : (
@@ -504,10 +505,10 @@ export default function CatDetail() {
           {/* Actions */}
           <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <Pressable
-              style={[styles.editBtn, { borderColor: dark ? PURPLE : "#111827" }]}
+              style={[styles.editBtn, { borderColor: dark ? accent : "#111827" }]}
               onPress={() => router.push(`/cats/edit/${id}`)}
             >
-              <Text style={[styles.editBtnText, { color: dark ? PURPLE : "#111827" }]}>Edit</Text>
+              <Text style={[styles.editBtnText, { color: dark ? accent : "#111827" }]}>Edit</Text>
             </Pressable>
 
             {currentUserId && cat?.owner === currentUserId && (
@@ -626,7 +627,7 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
   addedBy: { fontSize: 13, marginTop: 4, marginBottom: 2 },
-  addedByTappable: { color: "#a78bfa", textDecorationLine: "underline" },
+  addedByTappable: { textDecorationLine: "underline" },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   badge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   badgeText: { fontSize: 13, fontWeight: "600" },

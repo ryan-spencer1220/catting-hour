@@ -13,6 +13,8 @@ export type Cat = {
   createdAt?: string | null;
   owner?: string | null;
   ownerName?: string | null;
+  state?: string | null;
+  country?: string | null;
 };
 
 function mapRow(row: any): Cat | null {
@@ -30,6 +32,8 @@ function mapRow(row: any): Cat | null {
     createdAt: row.created_at ?? row.createdAt ?? null,
     owner: row.owner ?? null,
     ownerName: row.owner_name ?? null,
+    state: row.state ?? null,
+    country: row.country ?? null,
   };
 }
 
@@ -69,6 +73,8 @@ export async function createCat(payload: Partial<Cat>): Promise<Cat> {
     created_at: new Date().toISOString(),
     owner: ownerId,
     owner_name: ownerName,
+    state: payload.state ?? null,
+    country: payload.country ?? null,
   };
 
   const { data, error } = await supabase.from("cats").insert(insert).select().maybeSingle();

@@ -1,4 +1,5 @@
 import { SelectField } from "@/components/select-field";
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchCatById, updateCat, uploadImage } from "@/lib/cats";
 import * as ImagePicker from "expo-image-picker";
@@ -29,13 +30,12 @@ const CAT_TEMPERAMENTS = [
   "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
 ];
 
-const PURPLE = "#a78bfa";
-
 export default function EditCat() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,7 +142,7 @@ export default function EditCat() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={dark ? PURPLE : "#111827"} />
+        <ActivityIndicator size="large" color={dark ? accent : "#111827"} />
       </View>
     );
   }
@@ -184,7 +184,7 @@ export default function EditCat() {
           <Switch
             value={indoor}
             onValueChange={setIndoor}
-            trackColor={{ false: "#e5e7eb", true: PURPLE }}
+            trackColor={{ false: "#e5e7eb", true: accent }}
             thumbColor="#fff"
             ios_backgroundColor="#e5e7eb"
           />
@@ -212,7 +212,7 @@ export default function EditCat() {
         />
 
         <Pressable
-          style={[styles.button, dark && styles.buttonDark, saving && { opacity: 0.6 }]}
+          style={[styles.button, dark && { backgroundColor: accent }, saving && { opacity: 0.6 }]}
           onPress={submit}
           disabled={saving}
         >
@@ -220,10 +220,10 @@ export default function EditCat() {
         </Pressable>
 
         <Pressable
-          style={[styles.cancel, dark && styles.cancelDark]}
+          style={[styles.cancel, dark && { borderColor: accent }]}
           onPress={() => router.back()}
         >
-          <Text style={[styles.cancelText, dark && styles.cancelTextDark]}>Cancel</Text>
+          <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -280,7 +280,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: "center",
   },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
   cancel: {
     width: "100%",
@@ -292,7 +291,5 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignItems: "center",
   },
-  cancelDark: { borderColor: PURPLE },
   cancelText: { color: "#111827", fontWeight: "600" },
-  cancelTextDark: { color: PURPLE },
 });

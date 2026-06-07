@@ -2,9 +2,11 @@ import { SelectField } from "@/components/select-field";
 import { AchievementPopup } from "@/components/achievement-popup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { createCat, uploadImage } from "@/lib/cats";
-import { checkAndUnlockAchievements, Achievement } from "@/lib/achievements";
+import { checkAndUnlockAchievements, checkAndUnlockLocationAchievements, Achievement } from "@/lib/achievements";
+import { useAccent } from "@/context/theme";
 import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,13 +23,12 @@ const CAT_TEMPERAMENTS = [
   "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
 ];
 
-const PURPLE = "#a78bfa";
-
 export default function CreateCat() {
   const params = useLocalSearchParams<{ lng?: string; lat?: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const lng = parseFloat(params.lng ?? "0");
   const lat = parseFloat(params.lat ?? "0");
@@ -95,7 +96,16 @@ export default function CreateCat() {
       if (imageUri) {
         imageUrl = await uploadImage(imageUri);
       }
-      await createCat({ name: name.trim(), type, temperament, indoor, notes, lat, lng, image: imageUrl });
+
+      let state: string | null = null;
+      let country: string | null = null;
+      try {
+        const [geo] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        state = geo?.region ?? null;
+        country = geo?.country ?? null;
+      } catch {}
+
+      await createCat({ name: name.trim(), type, temperament, indoor, notes, lat, lng, image: imageUrl, state, country });
 
       try {
         const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
@@ -104,7 +114,11 @@ export default function CreateCat() {
             .from("cats")
             .select("*", { count: "exact", head: true })
             .eq("owner", userId);
-          const newAchievements = await checkAndUnlockAchievements(count ?? 0);
+          const [catAchievements, locationAchievements] = await Promise.all([
+            checkAndUnlockAchievements(count ?? 0),
+            checkAndUnlockLocationAchievements(userId),
+          ]);
+          const newAchievements = [...catAchievements, ...locationAchievements];
           if (newAchievements.length > 0) {
             setPendingAchievements(newAchievements.slice(1));
             setShownAchievement(newAchievements[0]);
@@ -179,7 +193,7 @@ export default function CreateCat() {
           <Switch
             value={indoor}
             onValueChange={setIndoor}
-            trackColor={{ false: "#e5e7eb", true: PURPLE }}
+            trackColor={{ false: "#e5e7eb", true: accent }}
             thumbColor="#fff"
             ios_backgroundColor="#e5e7eb"
           />
@@ -201,12 +215,12 @@ export default function CreateCat() {
           multiline
         />
 
-        <Pressable style={[styles.button, dark && styles.buttonDark]} onPress={submit} disabled={saving}>
+        <Pressable style={[styles.button, dark && { backgroundColor: accent }]} onPress={submit} disabled={saving}>
           <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
         </Pressable>
 
-        <Pressable style={[styles.cancel, dark && styles.cancelDark]} onPress={() => router.back()}>
-          <Text style={[styles.cancelText, dark && styles.cancelTextDark]}>Cancel</Text>
+        <Pressable style={[styles.cancel, dark && { borderColor: accent }]} onPress={() => router.back()}>
+          <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -245,10 +259,7 @@ const styles = StyleSheet.create({
   photoButtonTextDark: { color: "#d1d5db" },
   preview: { width: "100%", height: 200, borderRadius: 8, marginTop: 10 },
   button: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 8, marginTop: 20, alignItems: "center" },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
   cancel: { width: "100%", backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827", padding: 14, borderRadius: 8, marginTop: 12, alignItems: "center" },
-  cancelDark: { borderColor: PURPLE },
   cancelText: { color: "#111827", fontWeight: "600" },
-  cancelTextDark: { color: PURPLE },
 });

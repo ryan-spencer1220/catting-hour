@@ -1,17 +1,17 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
-const PURPLE = "#a78bfa";
-
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -75,7 +75,7 @@ export default function ResetPasswordScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.button, dark && styles.buttonDark, loading && { opacity: 0.6 }]}
+          style={[styles.button, dark && { backgroundColor: accent }, loading && { opacity: 0.6 }]}
           onPress={handleReset}
           disabled={loading}
         >
@@ -114,6 +114,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
 });

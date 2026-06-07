@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import { useRouter } from "expo-router";
@@ -8,6 +9,7 @@ export default function RecentlyScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const [cats, setCats] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,8 +91,8 @@ export default function RecentlyScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadCats({ refresh: true })}
-              tintColor={dark ? "#a78bfa" : "#111827"}
-              colors={["#a78bfa"]}
+              tintColor={dark ? accent : "#111827"}
+              colors={[accent]}
             />
           }
         />

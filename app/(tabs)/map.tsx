@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats } from "@/lib/cats";
 import Constants from "expo-constants";
@@ -14,6 +15,7 @@ const MAPBOX_ACCESS_TOKEN =
 
 export default function MapScreen() {
   const colorScheme = useColorScheme();
+  const accent = useAccent();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -113,7 +115,7 @@ export default function MapScreen() {
             .cat-marker.dark {
               background: rgba(167,139,250,0.2);
               box-shadow: 0 1px 6px rgba(167,139,250,0.4);
-              border: 2px solid #a78bfa;
+              border: 2px solid ${accent};
             }
             .cat-marker svg { display: block; }
           </style>
@@ -160,12 +162,12 @@ export default function MapScreen() {
                   zoom: 12
                 });
 
-                map.addControl(new mapboxgl.NavigationControl());
+                map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
                 // Keep a reference to the last marker so clicks replace it
                 window._lastCatMarker = null;
 
-                var PAW_COLOR = '${colorScheme === "dark" ? "#a78bfa" : "#374151"}';
+                var PAW_COLOR = '${colorScheme === "dark" ? accent : "#374151"}';
                 var PAW_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="22" ry="18" fill="' + PAW_COLOR + '"/><ellipse cx="22" cy="46" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="40" cy="35" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="60" cy="35" rx="11" ry="13" fill="' + PAW_COLOR + '"/><ellipse cx="78" cy="46" rx="11" ry="13" fill="' + PAW_COLOR + '"/></svg>';
 
                 function createCatMarker(lngLat, opts) {
@@ -249,7 +251,7 @@ export default function MapScreen() {
         </body>
       </html>
     `;
-  }, [colorScheme, styleUrl, centerLng, centerLat, cats]);
+  }, [colorScheme, styleUrl, centerLng, centerLat, cats, accent]);
 
   if (!locationResolved) {
     return (

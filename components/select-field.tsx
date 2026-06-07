@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import React, { useState } from "react";
 import {
   Modal,
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function SelectField({ value, options, onChange, dark, placeholder = "Select…" }: Props) {
+  const accent = useAccent();
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -66,7 +68,7 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
               >
                 <Text style={[styles.optionText, { color: textColor }]}>{opt}</Text>
                 {opt === value ? (
-                  <Text style={[styles.checkmark, { color: dark ? "#a78bfa" : "#111827" }]}>✓</Text>
+                  <Text style={[styles.checkmark, { color: dark ? accent : "#111827" }]}>✓</Text>
                 ) : null}
               </Pressable>
             ))}
@@ -76,7 +78,7 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
             style={[styles.cancelBtn, { borderTopColor: separatorColor }]}
             onPress={() => setOpen(false)}
           >
-            <Text style={[styles.cancelText, { color: dark ? "#a78bfa" : "#111827" }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: dark ? accent : "#111827" }]}>Cancel</Text>
           </Pressable>
         </View>
       </Modal>

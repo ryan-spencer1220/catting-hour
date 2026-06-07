@@ -1,21 +1,19 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useThemeContext } from "@/context/theme";
+import { ACCENT_COLORS, useThemeContext } from "@/context/theme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
-
-const PURPLE = "#a78bfa";
+import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
-  const { preference, setPreference, colorScheme } = useThemeContext();
+  const { preference, setPreference, colorScheme, accent, setAccent } = useThemeContext();
   const dark = colorScheme === "dark";
   const useDarkMode = preference === "dark";
 
   const switchProps = {
-    trackColor: { false: "#e5e7eb", true: PURPLE },
-    thumbColor: dark ? "#fff" : "#fff",
+    trackColor: { false: "#e5e7eb", true: accent },
+    thumbColor: "#fff",
     ios_backgroundColor: "#e5e7eb",
   };
 
@@ -112,9 +110,21 @@ export default function SettingsScreen() {
             <Switch {...switchProps} value={useDarkMode} onValueChange={setUseDarkMode} />
           </View>
 
-          <View style={styles.row}>
+          <View style={[styles.row, { alignItems: "center" }]}>
             <ThemedText style={styles.rowLabel}>Accent color</ThemedText>
-            <ThemedText style={styles.muted}>Default</ThemedText>
+            <View style={styles.swatches}>
+              {ACCENT_COLORS.map((c) => (
+                <Pressable
+                  key={c.value}
+                  onPress={() => setAccent(c.value)}
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: c.value },
+                    accent === c.value && styles.swatchActive,
+                  ]}
+                />
+              ))}
+            </View>
           </View>
         </View>
 
@@ -220,6 +230,9 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   unitButtonActive: { backgroundColor: "#e6f2fb" },
+  swatches: { flexDirection: "row", gap: 8 },
+  swatch: { width: 26, height: 26, borderRadius: 13 },
+  swatchActive: { borderWidth: 3, borderColor: "#fff", shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 3, elevation: 3 },
   unitText: { fontSize: 14, color: "#374151" },
   unitTextActive: { fontWeight: "700" },
   action: { paddingVertical: 12 },

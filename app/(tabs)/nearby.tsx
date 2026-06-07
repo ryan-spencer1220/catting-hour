@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
 import * as Location from "expo-location";
@@ -13,8 +14,6 @@ import {
   Text,
   View,
 } from "react-native";
-
-const PURPLE = "#a78bfa";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
@@ -41,6 +40,7 @@ type CatWithDistance = Cat & { distance: number };
 export default function RecentlyScreen() {
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
   const router = useRouter();
 
   const bg = dark ? "#0f1720" : "#fff";
@@ -111,7 +111,7 @@ export default function RecentlyScreen() {
             <Text style={[styles.sub, { color: textMuted }]}>Added by {item.ownerName}</Text>
           ) : null}
         </View>
-        <Text style={[styles.distance, { color: PURPLE }]}>{formatDistance(item.distance)}</Text>
+        <Text style={[styles.distance, { color: accent }]}>{formatDistance(item.distance)}</Text>
       </Pressable>
     );
   }
@@ -127,7 +127,7 @@ export default function RecentlyScreen() {
           return (
             <Pressable
               key={r}
-              style={[styles.toggleBtn, active && styles.toggleBtnActive]}
+              style={[styles.toggleBtn, active && { backgroundColor: accent }]}
               onPress={() => setRadius(r)}
             >
               <Text style={[styles.toggleText, { color: active ? "#fff" : textMuted }]}>
@@ -139,7 +139,7 @@ export default function RecentlyScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} color={dark ? PURPLE : "#111827"} />
+        <ActivityIndicator style={{ marginTop: 32 }} color={dark ? accent : "#111827"} />
       ) : locationDenied ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: textMuted }]}>
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: "center",
   },
-  toggleBtnActive: { backgroundColor: PURPLE },
+  toggleBtnActive: { backgroundColor: "transparent" },
   toggleText: { fontSize: 14, fontWeight: "600" },
 
   card: {

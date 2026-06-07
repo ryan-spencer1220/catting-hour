@@ -1,8 +1,9 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { uploadImage } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
 import { signOut as supabaseSignOut } from "@/lib/auth";
-import { ACHIEVEMENTS, getUnlockedAchievements } from "@/lib/achievements";
+import { ACHIEVEMENTS, checkAndUnlockFollowerAchievements, getUnlockedAchievements } from "@/lib/achievements";
 import { fetchFollowCounts, syncProfile } from "@/lib/profiles";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -20,8 +21,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PURPLE = "#a78bfa";
-
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (diff < 60) return "Just now";
@@ -36,12 +35,12 @@ type Stats = {
   myCats: number;
   myCheckins: number;
   lastCatAdded: { name: string; createdAt: string } | null;
-  lastSeen: { catName: string; createdAt: string } | null;
 };
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -94,6 +93,7 @@ export default function ProfileScreen() {
           if (userId) {
             const counts = await fetchFollowCounts(userId);
             if (mounted) setFollowCounts(counts);
+            await checkAndUnlockFollowerAchievements(counts.followers);
           }
         } catch {}
 
@@ -106,7 +106,6 @@ export default function ProfileScreen() {
             { count: myCats },
             { count: myCheckins },
             { data: lastCatRow },
-            { data: lastSeenRow },
           ] = await Promise.all([
             supabase.from("cats").select("*", { count: "exact", head: true }),
             userId
@@ -121,15 +120,6 @@ export default function ProfileScreen() {
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle(),
-            userId
-              ? supabase
-                  .from("checkins")
-                  .select("created_at, cat_id, cats(name)")
-                  .eq("author", userId)
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .maybeSingle()
-              : Promise.resolve({ data: null, error: null }),
           ]);
 
           if (mounted) {
@@ -139,12 +129,6 @@ export default function ProfileScreen() {
               myCheckins: myCheckins ?? 0,
               lastCatAdded: lastCatRow
                 ? { name: lastCatRow.name, createdAt: lastCatRow.created_at }
-                : null,
-              lastSeen: lastSeenRow
-                ? {
-                    catName: (lastSeenRow as any).cats?.name ?? "Unknown",
-                    createdAt: lastSeenRow.created_at,
-                  }
                 : null,
             });
           }
@@ -296,7 +280,7 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ── Header band ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 24, backgroundColor: accent }]}>
 
         {/* Avatar */}
         <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
@@ -311,8 +295,8 @@ export default function ProfileScreen() {
               <Text style={styles.initials}>{initials}</Text>
             </View>
           )}
-          <View style={styles.avatarEditBadge}>
-            <Text style={styles.avatarEditIcon}>✎</Text>
+          <View style={[styles.avatarEditBadge, { borderColor: accent }]}>
+            <Text style={[styles.avatarEditIcon, { color: accent }]}>✎</Text>
           </View>
         </Pressable>
 
@@ -345,10 +329,6 @@ export default function ProfileScreen() {
                 </Text>
               </Pressable>
             )}
-            {user?.email ? (
-              <Text style={styles.email}>{user.email}</Text>
-            ) : null}
-
             {/* City */}
             {editingCity ? (
               <View style={styles.cityEditRow}>
@@ -399,20 +379,28 @@ export default function ProfileScreen() {
 
         {/* Your activity */}
         <Text style={[styles.sectionLabel, { color: textMuted }]}>Your activity</Text>
-        <View style={[styles.statsGrid, { gap: 12 }]}>
-          <StatCard
+        <View style={[styles.statCard, { backgroundColor: card }]}>
+          <StatRow
             icon="🐾"
             label="Cats logged"
             value={statsLoading ? null : String(stats?.myCats ?? 0)}
-            card={card}
             textPrimary={textPrimary}
             textMuted={textMuted}
           />
-          <StatCard
+          <View style={[styles.statDivider, { backgroundColor: divider }]} />
+          <StatRow
             icon="✅"
             label="Check-ins"
             value={statsLoading ? null : String(stats?.myCheckins ?? 0)}
-            card={card}
+            textPrimary={textPrimary}
+            textMuted={textMuted}
+          />
+          <View style={[styles.statDivider, { backgroundColor: divider }]} />
+          <StatRow
+            icon="📅"
+            label="Last cat added"
+            value={statsLoading ? null : stats?.lastCatAdded ? timeAgo(stats.lastCatAdded.createdAt) : "—"}
+            sub={stats?.lastCatAdded?.name}
             textPrimary={textPrimary}
             textMuted={textMuted}
           />
@@ -420,42 +408,31 @@ export default function ProfileScreen() {
 
         {/* Community */}
         <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Community</Text>
-        <View style={[styles.statsGrid, { gap: 12 }]}>
-          <StatCard
+        <View style={[styles.statCard, { backgroundColor: card }]}>
+          <StatRow
             icon="🌍"
             label="Total cats"
             value={statsLoading ? null : String(stats?.totalCats ?? 0)}
-            card={card}
             textPrimary={textPrimary}
             textMuted={textMuted}
           />
-          <StatCard
+          <View style={[styles.statDivider, { backgroundColor: divider }]} />
+          <StatRow
             icon="🕐"
-            label="Last seen"
-            value={statsLoading ? null : stats?.lastSeen ? timeAgo(stats.lastSeen.createdAt) : "—"}
-            sub={stats?.lastSeen?.catName}
-            card={card}
+            label="Last login"
+            value={user?.last_sign_in_at ? timeAgo(user.last_sign_in_at) : "—"}
             textPrimary={textPrimary}
             textMuted={textMuted}
           />
         </View>
 
-        {stats?.lastCatAdded ? (
-          <View style={[styles.wideCard, { backgroundColor: card }]}>
-            <Text style={styles.statIcon}>📅</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.statLabel, { color: textMuted }]}>Last cat added</Text>
-              <Text style={[styles.statValue, { color: textPrimary }]}>
-                {timeAgo(stats.lastCatAdded.createdAt)}
-              </Text>
-              <Text style={[styles.statSub, { color: textMuted }]}>{stats.lastCatAdded.name}</Text>
-            </View>
-          </View>
-        ) : null}
-
         {/* Achievements */}
         <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Achievements</Text>
-        <View style={styles.achievementsGrid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.achievementsRow}
+        >
           {ACHIEVEMENTS.map((a) => {
             const unlocked = unlockedIds.includes(a.id);
             return (
@@ -482,7 +459,7 @@ export default function ProfileScreen() {
               </View>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* Account actions */}
         <View style={[styles.divider, { backgroundColor: divider, marginTop: 8 }]} />
@@ -499,27 +476,28 @@ export default function ProfileScreen() {
   );
 }
 
-function StatCard({
-  icon, label, value, sub, card, textPrimary, textMuted,
+function StatRow({
+  icon, label, value, sub, textPrimary, textMuted,
 }: {
   icon: string;
   label: string;
   value: string | null;
   sub?: string;
-  card: string;
   textPrimary: string;
   textMuted: string;
 }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: card }]}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={[styles.statLabel, { color: textMuted }]}>{label}</Text>
-      {value === null ? (
-        <ActivityIndicator size="small" color={textMuted} style={{ marginTop: 4 }} />
-      ) : (
-        <Text style={[styles.statValue, { color: textPrimary }]}>{value}</Text>
-      )}
-      {sub ? <Text style={[styles.statSub, { color: textMuted }]}>{sub}</Text> : null}
+    <View style={styles.statRow}>
+      <Text style={styles.statRowIcon}>{icon}</Text>
+      <Text style={[styles.statRowLabel, { color: textMuted }]}>{label}</Text>
+      <View style={styles.statRowRight}>
+        {value === null ? (
+          <ActivityIndicator size="small" color={textMuted} />
+        ) : (
+          <Text style={[styles.statRowValue, { color: textPrimary }]}>{value}</Text>
+        )}
+        {sub ? <Text style={[styles.statRowSub, { color: textMuted }]}>{sub}</Text> : null}
+      </View>
     </View>
   );
 }
@@ -528,7 +506,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   header: {
-    backgroundColor: PURPLE,
     alignItems: "center",
     paddingBottom: 32,
     paddingHorizontal: 24,
@@ -549,12 +526,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: PURPLE,
+    borderColor: "transparent",
   },
-  avatarEditIcon: { fontSize: 13, color: PURPLE, lineHeight: 18 },
+  avatarEditIcon: { fontSize: 13, lineHeight: 18 },
 
   displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
-  email: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 3, textAlign: "center" },
 
   cityRow: { marginTop: 8 },
   cityText: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
@@ -580,39 +556,35 @@ const styles = StyleSheet.create({
   followCountDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.3)" },
 
   sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-  statsGrid: { flexDirection: "row" },
 
   statCard: {
-    flex: 1,
     borderRadius: 14,
-    padding: 16,
-    alignItems: "flex-start",
-    minHeight: 90,
+    overflow: "hidden",
   },
-  wideCard: {
-    borderRadius: 14,
-    padding: 16,
+  statDivider: { height: StyleSheet.hairlineWidth },
+  statRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-  },
-  statIcon: { fontSize: 22, marginBottom: 6 },
-  statLabel: { fontSize: 12, fontWeight: "500", marginBottom: 2 },
-  statValue: { fontSize: 20, fontWeight: "800" },
-  statSub: { fontSize: 11, marginTop: 2 },
-
-  achievementsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     gap: 10,
   },
+  statRowIcon: { fontSize: 18, width: 26, textAlign: "center" },
+  statRowLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
+  statRowRight: { alignItems: "flex-end" },
+  statRowValue: { fontSize: 14, fontWeight: "700" },
+  statRowSub: { fontSize: 11, marginTop: 1 },
+
+  achievementsRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingVertical: 2,
+  },
   achievementBadge: {
-    width: "30%",
-    flexGrow: 1,
+    width: 110,
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
-    minHeight: 90,
   },
   achievementLocked: { opacity: 0.45 },
   achievementIcon: { fontSize: 28, marginBottom: 4 },

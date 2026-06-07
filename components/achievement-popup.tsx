@@ -1,6 +1,7 @@
+import { useAccent } from "@/context/theme";
+import { Achievement } from "@/lib/achievements";
 import React, { useEffect, useRef } from "react";
 import { Animated, Modal, Pressable, StyleSheet, Text } from "react-native";
-import { Achievement } from "@/lib/achievements";
 
 type Props = {
   achievement: Achievement | null;
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export function AchievementPopup({ achievement, onDismiss }: Props) {
+  const accent = useAccent();
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.7)).current;
 
@@ -28,13 +30,13 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
   return (
     <Modal transparent animationType="none" visible={!!achievement} onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
-        <Animated.View style={[styles.card, { opacity, transform: [{ scale }] }]}>
+        <Animated.View style={[styles.card, { opacity, transform: [{ scale }], borderColor: accent }]}>
           <Text style={styles.badge}>🎉</Text>
-          <Text style={styles.achievedLabel}>Achievement Unlocked!</Text>
+          <Text style={[styles.achievedLabel, { color: accent }]}>Achievement Unlocked!</Text>
           <Text style={styles.icon}>{achievement.icon}</Text>
           <Text style={styles.title}>{achievement.title}</Text>
           <Text style={styles.description}>{achievement.description}</Text>
-          <Pressable style={styles.button} onPress={onDismiss}>
+          <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={onDismiss}>
             <Text style={styles.buttonText}>Awesome!</Text>
           </Pressable>
         </Animated.View>
@@ -62,11 +64,11 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
     borderWidth: 1.5,
-    borderColor: "#a78bfa",
+    borderColor: "transparent",
   },
   badge: { fontSize: 28, marginBottom: 4 },
   achievedLabel: {
-    color: "#a78bfa",
+    color: "transparent",
     fontSize: 13,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -77,7 +79,7 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center", marginBottom: 6 },
   description: { color: "#9ca3af", fontSize: 14, textAlign: "center", marginBottom: 24 },
   button: {
-    backgroundColor: "#a78bfa",
+    backgroundColor: "transparent",
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 12,

@@ -1,3 +1,4 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
 import {
@@ -23,13 +24,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PURPLE = "#a78bfa";
-
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
 
   const bg = dark ? "#0f1720" : "#f5f5f7";
@@ -100,7 +100,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator color={dark ? PURPLE : "#111827"} />
+        <ActivityIndicator color={dark ? accent : "#111827"} />
       </View>
     );
   }
@@ -129,7 +129,7 @@ export default function UserProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Header band */}
-            <View style={[styles.header, { paddingTop: insets.top + 56 }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 56, backgroundColor: accent }]}>
               {profile.avatarUrl ? (
                 <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
               ) : (
@@ -172,7 +172,7 @@ export default function UserProfileScreen() {
                   onPress={handleFollowToggle}
                   disabled={followLoading}
                 >
-                  <Text style={[styles.followBtnText, following && styles.followingBtnText]}>
+                  <Text style={[styles.followBtnText, { color: accent }, following && styles.followingBtnText]}>
                     {followLoading ? "…" : following ? "Following" : "Follow"}
                   </Text>
                 </Pressable>
@@ -239,7 +239,6 @@ const styles = StyleSheet.create({
   backBtnText: { color: "#fff", fontSize: 26, lineHeight: 30, marginTop: -2 },
 
   header: {
-    backgroundColor: PURPLE,
     alignItems: "center",
     paddingBottom: 32,
     paddingHorizontal: 24,
@@ -264,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   followingBtn: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)" },
-  followBtnText: { color: PURPLE, fontWeight: "700", fontSize: 15 },
+  followBtnText: { fontWeight: "700", fontSize: 15 },
   followingBtnText: { color: "#fff" },
   ownProfileNote: { marginTop: 16, fontSize: 13 },
 

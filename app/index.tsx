@@ -1,26 +1,26 @@
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-const PURPLE = "#a78bfa";
-
 export default function AuthLanding() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   return (
     <View style={[styles.container, dark && styles.containerDark]}>
       <Text style={[styles.title, dark && styles.titleDark]}>Catting Hour</Text>
       <Text style={[styles.subtitle, dark && styles.subtitleDark]}>Share and discover local cats</Text>
 
-      <Pressable style={[styles.button, dark && styles.buttonDark]} onPress={() => router.push("/login")}>
+      <Pressable style={[styles.button, dark && { backgroundColor: accent }]} onPress={() => router.push("/login")}>
         <Text style={styles.buttonText}>Log in</Text>
       </Pressable>
 
-      <Pressable style={[styles.button, styles.outline, dark && styles.outlineDark]} onPress={() => router.push("/register")}>
-        <Text style={[styles.outlineText, dark && styles.outlineTextDark]}>Create account</Text>
+      <Pressable style={[styles.button, styles.outline, dark && { borderColor: accent }]} onPress={() => router.push("/register")}>
+        <Text style={[styles.outlineText, dark && { color: accent }]}>Create account</Text>
       </Pressable>
 
     </View>
@@ -59,14 +59,11 @@ const styles = StyleSheet.create({
     minWidth: 220,
     alignItems: "center",
   },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
   outline: {
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "#111827",
   },
-  outlineDark: { borderColor: PURPLE },
   outlineText: { color: "#111827", fontWeight: "600" },
-  outlineTextDark: { color: PURPLE },
 });

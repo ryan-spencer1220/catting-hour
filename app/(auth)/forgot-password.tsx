@@ -1,17 +1,17 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
-const PURPLE = "#a78bfa";
-
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen() {
             <ThemedText style={styles.body}>
               Check your inbox — we sent a password reset link to {email}.
             </ThemedText>
-            <TouchableOpacity style={[styles.button, dark && styles.buttonDark]} onPress={() => router.back()}>
+            <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={() => router.back()}>
               <ThemedText style={styles.buttonText}>Back to sign in</ThemedText>
             </TouchableOpacity>
           </>
@@ -71,7 +71,7 @@ export default function ForgotPasswordScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.button, dark && styles.buttonDark, loading && { opacity: 0.6 }]}
+              style={[styles.button, dark && { backgroundColor: accent }, loading && { opacity: 0.6 }]}
               onPress={handleReset}
               disabled={loading}
             >
@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
   linkRow: { marginTop: 16, alignItems: "center" },
 });

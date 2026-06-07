@@ -1,17 +1,17 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signUpWithEmail } from "@/lib/auth";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
-const PURPLE = "#a78bfa";
-
 export default function RegisterScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
+  const accent = useAccent();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -118,7 +118,7 @@ export default function RegisterScreen() {
           autoComplete="off"
         />
 
-        <TouchableOpacity style={[styles.button, dark && styles.buttonDark]} onPress={handleRegister} disabled={loading}>
+        <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleRegister} disabled={loading}>
           <ThemedText style={styles.buttonText}>{loading ? "Creating..." : "Create account"}</ThemedText>
         </TouchableOpacity>
 
@@ -155,7 +155,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  buttonDark: { backgroundColor: PURPLE },
   buttonText: { color: "#fff", fontWeight: "600" },
   linkRow: { marginTop: 16, alignItems: "center" },
 });
