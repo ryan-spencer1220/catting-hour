@@ -6,9 +6,16 @@ beforeEach(async () => {
 });
 
 describe('ACHIEVEMENTS', () => {
-  it('has thresholds in ascending order', () => {
-    const thresholds = ACHIEVEMENTS.map((a) => a.threshold);
-    expect(thresholds).toEqual([...thresholds].sort((a, b) => a - b));
+  it('has thresholds in ascending order within each category', () => {
+    const catIds = ['first_cat', 'cat_lover', 'cat_enthusiast', 'cat_collector', 'cat_legend'];
+    const followerIds = ['new_friend', 'five_friends', 'ten_friends', 'fifty_friends', 'hundred_friends'];
+    const stateIds = ['state_2', 'state_5', 'state_10', 'state_25', 'state_50'];
+    const countryIds = ['country_2', 'country_5'];
+
+    for (const group of [catIds, followerIds, stateIds, countryIds]) {
+      const thresholds = ACHIEVEMENTS.filter((a) => group.includes(a.id)).map((a) => a.threshold);
+      expect(thresholds).toEqual([...thresholds].sort((a, b) => a - b));
+    }
   });
 
   it('has unique ids', () => {

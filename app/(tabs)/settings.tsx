@@ -9,7 +9,6 @@ import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "re
 
 export default function SettingsScreen() {
   const { preference, setPreference, colorScheme, accent, setAccent } = useThemeContext();
-  const dark = colorScheme === "dark";
   const useDarkMode = preference === "dark";
 
   const switchProps = {
