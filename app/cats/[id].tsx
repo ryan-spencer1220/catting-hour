@@ -386,7 +386,22 @@ export default function CatDetail() {
         {/* ── Content card ── */}
         <View style={[styles.card, { backgroundColor: bg }]}>
 
-          <Text style={[styles.name, { color: textPrimary }]}>{cat.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
+            <Pressable style={styles.likeBtn} onPress={handleToggleLike} disabled={likeLoading}>
+              <Heart
+                size={32}
+                color={liked ? "#ef4444" : textMuted}
+                fill={liked ? "#ef4444" : "none"}
+              />
+              {likeCount > 0 && (
+                <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
+                  {likeCount}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+
           {cat.ownerName ? (
             <Pressable
               onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
@@ -415,18 +430,6 @@ export default function CatDetail() {
               </Text>
             </View>
           </View>
-
-          {/* Like button */}
-          <Pressable style={styles.likeRow} onPress={handleToggleLike} disabled={likeLoading}>
-            <Heart
-              size={24}
-              color={liked ? "#ef4444" : textMuted}
-              fill={liked ? "#ef4444" : "none"}
-            />
-            <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
-              {likeCount > 0 ? likeCount : ""}
-            </Text>
-          </Pressable>
 
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
@@ -716,7 +719,7 @@ const styles = StyleSheet.create({
 
   card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 28 },
 
-  name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
+  name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5, flex: 1 },
   addedBy: { fontSize: 13, marginTop: 4, marginBottom: 2 },
   addedByTappable: { textDecorationLine: "underline" },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
@@ -724,8 +727,9 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: "600" },
 
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 20 },
-  likeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16 },
-  likeCount: { fontSize: 15, fontWeight: "600" },
+  nameRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  likeBtn: { alignItems: "center", paddingTop: 4, minWidth: 40 },
+  likeCount: { fontSize: 13, fontWeight: "600", marginTop: 3 },
 
   detailList: { gap: 16 },
   detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
