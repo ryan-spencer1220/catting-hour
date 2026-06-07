@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ACCENT_COLORS, useThemeContext } from "@/context/theme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
+import { disableNotifications, enableNotifications, getNotificationPreference } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
@@ -20,7 +21,7 @@ export default function SettingsScreen() {
   function setUseDarkMode(enabled: boolean) {
     setPreference(enabled ? "dark" : "system");
   }
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [useMetric, setUseMetric] = useState(true);
   const [syncFavorites, setSyncFavorites] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -40,6 +41,9 @@ export default function SettingsScreen() {
       } catch (e) {
         console.warn(e);
       }
+
+      const pref = await getNotificationPreference();
+      if (mounted) setNotificationsEnabled(pref);
     })();
 
     const {
@@ -53,6 +57,19 @@ export default function SettingsScreen() {
       subscription?.unsubscribe?.();
     };
   }, []);
+
+  async function handleToggleNotifications(enabled: boolean) {
+    if (enabled) {
+      const result = await enableNotifications();
+      if (!result.success) {
+        Alert.alert("Notifications blocked", result.message ?? "Could not enable notifications.");
+        return;
+      }
+    } else {
+      await disableNotifications();
+    }
+    setNotificationsEnabled(enabled);
+  }
 
   function confirmClearCache() {
     Alert.alert("Clear cache", "Are you sure you want to clear cached data?", [
@@ -136,7 +153,7 @@ export default function SettingsScreen() {
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Enable notifications</ThemedText>
-            <Switch {...switchProps} value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
+            <Switch {...switchProps} value={notificationsEnabled} onValueChange={handleToggleNotifications} />
           </View>
 
           <View style={styles.row}>

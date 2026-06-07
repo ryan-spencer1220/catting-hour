@@ -16,6 +16,7 @@
         "NSLocationWhenInUseUsageDescription": "We use your location to center the map. Your location is only used locally and not stored or shared.",
         "NSCameraUsageDescription": "Allow catting-hour to take photos of cats.",
         "NSPhotoLibraryUsageDescription": "Allow catting-hour to access your photos to add cat pictures.",
+        "NSUserNotificationsUsageDescription": "Get notified when someone follows you or adds a cat near you.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -31,7 +32,9 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ]
     },
     "web": {
@@ -40,6 +43,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
