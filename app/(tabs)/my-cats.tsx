@@ -573,6 +573,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 13,
     gap: 10,
+    minHeight: 56,
   },
   statRowIcon: { width: 26, alignItems: "center" },
   statRowLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
