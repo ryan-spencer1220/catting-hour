@@ -5,7 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signUpWithEmail } from "@/lib/auth";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -118,6 +118,13 @@ export default function RegisterScreen() {
           autoComplete="off"
         />
 
+        <Text style={[styles.consent, { color: dark ? "#6b7280" : "#9ca3af" }]}>
+          By creating an account you agree to our{" "}
+          <Text style={{ color: accent }} onPress={() => router.push("/terms")}>Terms of Service</Text>
+          {" "}and{" "}
+          <Text style={{ color: accent }} onPress={() => router.push("/privacy")}>Privacy Policy</Text>.
+        </Text>
+
         <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleRegister} disabled={loading}>
           <ThemedText style={styles.buttonText}>{loading ? "Creating..." : "Create account"}</ThemedText>
         </TouchableOpacity>
@@ -157,4 +164,5 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#fff", fontWeight: "600" },
   linkRow: { marginTop: 16, alignItems: "center" },
+  consent: { fontSize: 12, lineHeight: 18, marginTop: 16, textAlign: "center" },
 });

@@ -4,10 +4,12 @@ import { ACCENT_COLORS, useThemeContext } from "@/context/theme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { disableNotifications, enableNotifications, getNotificationPreference } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { preference, setPreference, colorScheme, accent, setAccent } = useThemeContext();
   const useDarkMode = preference === "dark";
 
@@ -217,10 +219,20 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Footer / Info */}
+        {/* Legal */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Legal</ThemedText>
+          <TouchableOpacity style={styles.action} onPress={() => router.push("/privacy")}>
+            <ThemedText style={styles.actionText}>Privacy Policy</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.action} onPress={() => router.push("/terms")}>
+            <ThemedText style={styles.actionText}>Terms of Service</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
         <View style={{ paddingVertical: 24 }}>
           <ThemedText style={styles.muted}>App version: 1.0.0</ThemedText>
-          <ThemedText style={styles.muted}>Built for demo purposes — settings are local only.</ThemedText>
         </View>
       </View>
     </ThemedView>
