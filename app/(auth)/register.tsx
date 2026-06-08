@@ -157,12 +157,12 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 20,
-    padding: 14,
+    paddingVertical: 16,
     backgroundColor: "#111827",
-    borderRadius: 8,
+    borderRadius: 14,
     alignItems: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   linkRow: { marginTop: 16, alignItems: "center" },
   consent: { fontSize: 12, lineHeight: 18, marginTop: 16, textAlign: "center" },
 });

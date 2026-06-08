@@ -170,11 +170,15 @@ export default function FeedScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: dark ? "#0f1720" : "#f3f4f6" }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.heading, { color: textPrimary }]}>Feed</Text>
-        <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
-          <Cat size={13} color={textMuted} />
-          <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats...</Text>
-        </Animated.View>
+        <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+          <Cat size={22} color={accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.heading, { color: textPrimary }]}>Feed</Text>
+          <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
+            <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats…</Text>
+          </Animated.View>
+        </View>
       </View>
 
       {/* Toggle */}
@@ -247,21 +251,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 10,
+  },
+  iconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   heading: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    lineHeight: 32,
   },
-  fetchingLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  fetchingLabelText: { fontSize: 13, fontStyle: "italic" },
+  fetchingLabel: { flexDirection: "row", alignItems: "center", gap: 4 },
+  fetchingLabelText: { fontSize: 12, fontStyle: "italic" },
 
   toggleRow: {
     flexDirection: "row",

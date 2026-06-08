@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FadeImage } from "@/components/fade-image";
 import { Skeleton } from "@/components/skeleton";
 import { EmptyState } from "@/components/empty-state";
-import { MapPin, PawPrint } from "lucide-react-native";
+import { Compass, MapPin, PawPrint } from "lucide-react-native";
 import * as Linking from "expo-linking";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
@@ -121,7 +121,12 @@ export default function RecentlyScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: bg }]}>
-      <Text style={[styles.heading, { color: textPrimary }]}>Nearby</Text>
+      <View style={styles.header}>
+        <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+          <Compass size={22} color={accent} />
+        </View>
+        <Text style={[styles.heading, { color: textPrimary }]}>Nearby</Text>
+      </View>
 
       {/* Radius toggle */}
       <View style={[styles.toggleRow, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
@@ -184,12 +189,25 @@ export default function RecentlyScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  iconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
 
   toggleRow: {

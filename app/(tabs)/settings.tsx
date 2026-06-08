@@ -1,16 +1,19 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ACCENT_COLORS, useThemeContext } from "@/context/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { disableNotifications, enableNotifications, getNotificationPreference } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
+import { Settings as SettingsIcon } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { preference, setPreference, accent, setAccent } = useThemeContext();
+  const colorScheme = useColorScheme();
   const useDarkMode = preference === "dark";
 
   const switchProps = {
@@ -110,12 +113,25 @@ export default function SettingsScreen() {
     ]);
   }
 
+  const dark = colorScheme === "dark";
+  const textPrimary = dark ? "#fff" : "#111827";
+  const textMuted = dark ? "#9ca3af" : "#6b7280";
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.inner}>
-        <ThemedText type="title" style={styles.header}>
-          Settings
-        </ThemedText>
+        {/* Page header */}
+        <View style={styles.pageHeader}>
+          <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+            <SettingsIcon size={22} color={accent} />
+          </View>
+          <View>
+            <Text style={[styles.pageTitle, { color: textPrimary }]}>Settings</Text>
+            {userEmail ? (
+              <Text style={[styles.pageSubtitle, { color: textMuted }]}>{userEmail}</Text>
+            ) : null}
+          </View>
+        </View>
 
         {/* Appearance */}
         <View style={styles.section}>
@@ -242,7 +258,10 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: { padding: 20 },
-  header: { marginBottom: 12 },
+  pageHeader: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 8, paddingBottom: 4 },
+  iconRing: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  pageTitle: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  pageSubtitle: { fontSize: 13, marginTop: 1 },
   section: { marginTop: 18, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "#e6e9ee", paddingTop: 12 },
   sectionTitle: { marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
