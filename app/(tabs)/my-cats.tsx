@@ -389,6 +389,8 @@ export default function ProfileScreen() {
             value={statsLoading ? null : String(stats?.myCats ?? 0)}
             textPrimary={textPrimary}
             textMuted={textMuted}
+            onPress={() => router.push("/my-logged-cats")}
+            accent={accent}
           />
           <View style={[styles.statDivider, { backgroundColor: divider }]} />
           <StatRow
@@ -482,7 +484,7 @@ export default function ProfileScreen() {
 }
 
 function StatRow({
-  icon, label, value, sub, textPrimary, textMuted,
+  icon, label, value, sub, textPrimary, textMuted, onPress, accent,
 }: {
   icon: React.ReactElement;
   label: string;
@@ -490,8 +492,10 @@ function StatRow({
   sub?: string;
   textPrimary: string;
   textMuted: string;
+  onPress?: () => void;
+  accent?: string;
 }) {
-  return (
+  const content = (
     <View style={styles.statRow}>
       <View style={styles.statRowIcon}>{icon}</View>
       <Text style={[styles.statRowLabel, { color: textMuted }]}>{label}</Text>
@@ -499,12 +503,14 @@ function StatRow({
         {value === null ? (
           <Skeleton style={{ height: 15, width: 60 }} />
         ) : (
-          <Text style={[styles.statRowValue, { color: textPrimary }]}>{value}</Text>
+          <Text style={[styles.statRowValue, { color: onPress ? accent ?? textPrimary : textPrimary }]}>{value}</Text>
         )}
         {sub ? <Text style={[styles.statRowSub, { color: textMuted }]}>{sub}</Text> : null}
       </View>
     </View>
   );
+  if (onPress) return <Pressable onPress={onPress}>{content}</Pressable>;
+  return content;
 }
 
 const styles = StyleSheet.create({
