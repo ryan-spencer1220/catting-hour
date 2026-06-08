@@ -96,7 +96,7 @@ export default function TermsScreen() {
 
         <Section title="Disclaimer of Warranties" heading={headingColor} divider={divider}>
           <Body color={textBody}>
-            The app is provided "as is" without warranties of any kind, express or implied.
+            The app is provided &ldquo;as is&rdquo; without warranties of any kind, express or implied.
             We do not warrant that the app will be uninterrupted, error-free, or free of
             viruses. Use of the app is at your own risk.
           </Body>
@@ -121,7 +121,7 @@ export default function TermsScreen() {
         <Section title="Changes to Terms" heading={headingColor} divider={divider}>
           <Body color={textBody}>
             We may update these Terms from time to time. We will notify you of significant
-            changes by updating the "Last updated" date. Continued use of the app after
+            changes by updating the &ldquo;Last updated&rdquo; date. Continued use of the app after
             changes constitutes acceptance of the updated Terms.
           </Body>
         </Section>
