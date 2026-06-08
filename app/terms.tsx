@@ -39,7 +39,7 @@ export default function TermsScreen() {
 
         <Section title="Acceptance of Terms" heading={headingColor} divider={divider}>
           <Body color={textBody}>
-            By downloading or using The Catting Hour ("the app"), you agree to be bound by
+            By downloading or using The Catting Hour (&ldquo;the app&rdquo;), you agree to be bound by
             these Terms of Service. If you do not agree, please do not use the app.
           </Body>
         </Section>

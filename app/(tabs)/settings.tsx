@@ -10,7 +10,7 @@ import { Alert, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "re
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { preference, setPreference, colorScheme, accent, setAccent } = useThemeContext();
+  const { preference, setPreference, accent, setAccent } = useThemeContext();
   const useDarkMode = preference === "dark";
 
   const switchProps = {

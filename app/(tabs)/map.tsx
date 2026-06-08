@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 let Mapbox: any = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Mapbox = require("@rnmapbox/maps").default;
   const token = (Constants as any).expoConfig?.extra?.MAPBOX_ACCESS_TOKEN ?? "";
   Mapbox.setAccessToken(token);
@@ -83,7 +84,7 @@ export default function MapScreen() {
           Development Build Required
         </Text>
         <Text style={styles.fallbackBody}>
-          Native maps aren't available in Expo Go.{"\n"}Run a development build to use the map.
+          {"Native maps aren't available in Expo Go.\nRun a development build to use the map."}
         </Text>
         <Text style={[styles.fallbackCmd, { color: accent }]}>
           eas build --profile development

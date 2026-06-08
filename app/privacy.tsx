@@ -39,7 +39,7 @@ export default function PrivacyScreen() {
 
         <Section title="Overview" heading={headingColor} divider={divider}>
           <Body color={textBody}>
-            The Catting Hour ("we", "our", or "us") is committed to protecting your privacy.
+            The Catting Hour (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is committed to protecting your privacy.
             This policy explains what information we collect when you use our app, how we use
             it, and the choices you have.
           </Body>
@@ -135,7 +135,7 @@ export default function PrivacyScreen() {
         <Section title="Changes to This Policy" heading={headingColor} divider={divider}>
           <Body color={textBody}>
             We may update this Privacy Policy from time to time. We will notify you of
-            significant changes by updating the "Last updated" date above. Continued use
+            significant changes by updating the &ldquo;Last updated&rdquo; date above. Continued use
             of the app after changes constitutes acceptance of the updated policy.
           </Body>
         </Section>

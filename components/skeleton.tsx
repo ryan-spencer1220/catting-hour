@@ -27,6 +27,8 @@ export function Skeleton({ style, radius = 6, light = false }: Props) {
       ),
       -1,
     );
+    // opacity is a stable Reanimated shared value ref — no re-run needed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));

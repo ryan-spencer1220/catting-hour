@@ -76,7 +76,6 @@ function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
 
   const isLast = index === SLIDES.length - 1;
   const slide = SLIDES[index];
-  const SlideIcon = slide.Icon;
 
   function next() {
     if (isLast) {
