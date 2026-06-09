@@ -170,15 +170,15 @@ export default function FeedScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: dark ? "#0f1720" : "#f3f4f6" }]}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
-          <Cat size={22} color={accent} />
-        </View>
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerTitleRow}>
+          <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+            <Cat size={22} color={accent} />
+          </View>
           <Text style={[styles.heading, { color: textPrimary }]}>Feed</Text>
-          <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
-            <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats…</Text>
-          </Animated.View>
         </View>
+        <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
+          <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats…</Text>
+        </Animated.View>
       </View>
 
       {/* Toggle */}
@@ -249,12 +249,14 @@ const feedSkeletonStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 10,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   iconRing: {
     width: 44,
