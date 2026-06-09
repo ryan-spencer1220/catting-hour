@@ -29,6 +29,7 @@ export default function SettingsScreen() {
   const [useMetric, setUseMetric] = useState(true);
   const [syncFavorites, setSyncFavorites] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,6 +88,44 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete account",
+      "This permanently deletes your account and all your data. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Are you absolutely sure?",
+              "Your cats, check-ins, and profile will be gone forever.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Yes, delete everything",
+                  style: "destructive",
+                  onPress: async () => {
+                    setDeletingAccount(true);
+                    try {
+                      const { error } = await supabase.functions.invoke("delete-account");
+                      if (error) throw error;
+                      // Auth state change will redirect to "/"
+                    } catch (err: any) {
+                      Alert.alert("Failed to delete account", err?.message || String(err));
+                      setDeletingAccount(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   }
 
   function handleSignOut() {
@@ -233,6 +272,10 @@ export default function SettingsScreen() {
           <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleSignOut} disabled={signingOut}>
             <ThemedText style={[styles.actionText, styles.dangerText]}>{signingOut ? "Signing out..." : "Sign out"}</ThemedText>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleDeleteAccount} disabled={deletingAccount}>
+            <ThemedText style={[styles.actionText, styles.deleteText]}>{deletingAccount ? "Deleting account..." : "Delete account"}</ThemedText>
+          </TouchableOpacity>
         </View>
 
         {/* Legal */}
@@ -286,4 +329,5 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 16 },
   danger: { marginTop: 8 },
   dangerText: { color: "#dc2626" },
+  deleteText: { color: "#9ca3af" },
 });
