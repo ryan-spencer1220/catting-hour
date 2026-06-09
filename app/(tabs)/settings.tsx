@@ -12,7 +12,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, TouchableOpacity, View } fr
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { preference, setPreference, accent, setAccent } = useThemeContext();
+  const { preference, setPreference, accent, setAccent, useMetric, setUseMetric } = useThemeContext();
   const colorScheme = useColorScheme();
   const useDarkMode = preference === "dark";
 
@@ -26,7 +26,6 @@ export default function SettingsScreen() {
     setPreference(enabled ? "dark" : "system");
   }
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [useMetric, setUseMetric] = useState(true);
   const [syncFavorites, setSyncFavorites] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);

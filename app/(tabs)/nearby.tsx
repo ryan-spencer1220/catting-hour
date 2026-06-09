@@ -1,4 +1,4 @@
-import { useAccent } from "@/context/theme";
+import { useAccent, useThemeContext } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
 import * as Location from "expo-location";
@@ -20,8 +20,9 @@ import * as Linking from "expo-linking";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
+// Returns distance in kilometres
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3958.8;
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -33,7 +34,12 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function formatDistance(miles: number): string {
+function formatDistance(km: number, metric: boolean): string {
+  if (metric) {
+    if (km < 0.1) return "< 0.1 km";
+    return `${km.toFixed(1)} km`;
+  }
+  const miles = km * 0.621371;
   if (miles < 0.1) return "< 0.1 mi";
   return `${miles.toFixed(1)} mi`;
 }
@@ -44,6 +50,7 @@ export default function RecentlyScreen() {
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
   const accent = useAccent();
+  const { useMetric } = useThemeContext();
   const router = useRouter();
 
   const bg = dark ? "#0f1720" : "#fff";
@@ -85,15 +92,17 @@ export default function RecentlyScreen() {
 
   const nearbyCats = useMemo((): CatWithDistance[] => {
     if (!location) return [];
+    // radius is always in the currently selected unit; convert to km for comparison
+    const radiusKm = useMetric ? radius : radius * 1.60934;
     return cats
       .filter((c) => c.lat != null && c.lng != null)
       .map((c) => ({
         ...c,
         distance: haversineDistance(location.lat, location.lng, c.lat!, c.lng!),
       }))
-      .filter((c) => c.distance <= radius)
+      .filter((c) => c.distance <= radiusKm)
       .sort((a, b) => a.distance - b.distance);
-  }, [cats, location, radius]);
+  }, [cats, location, radius, useMetric]);
 
   function renderItem({ item }: { item: CatWithDistance }) {
     return (
@@ -114,7 +123,7 @@ export default function RecentlyScreen() {
             <Text style={[styles.sub, { color: textMuted }]}>Added by {item.ownerName}</Text>
           ) : null}
         </View>
-        <Text style={[styles.distance, { color: accent }]}>{formatDistance(item.distance)}</Text>
+        <Text style={[styles.distance, { color: accent }]}>{formatDistance(item.distance, useMetric)}</Text>
       </Pressable>
     );
   }
@@ -139,7 +148,7 @@ export default function RecentlyScreen() {
               onPress={() => setRadius(r)}
             >
               <Text style={[styles.toggleText, { color: active ? "#fff" : textMuted }]}>
-                {r} mi
+                {r} {useMetric ? "km" : "mi"}
               </Text>
             </Pressable>
           );

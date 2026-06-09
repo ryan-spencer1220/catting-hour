@@ -20,6 +20,7 @@ export const ACCENT_COLORS: AccentColor[] = [
 
 const THEME_STORAGE_KEY = "@theme_preference";
 const ACCENT_STORAGE_KEY = "@accent_color";
+const METRIC_STORAGE_KEY = "@use_metric";
 
 interface ThemeContextValue {
   colorScheme: ColorScheme;
@@ -27,6 +28,8 @@ interface ThemeContextValue {
   setPreference: (pref: ThemePreference) => void;
   accent: string;
   setAccent: (color: string) => void;
+  useMetric: boolean;
+  setUseMetric: (metric: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -35,12 +38,16 @@ export function ThemeContextProvider({ children }: { children: React.ReactNode }
   const systemScheme = useSystemColorScheme() ?? "light";
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
   const [accent, setAccentState] = useState(ACCENT_COLORS[0].value);
+  const [useMetric, setUseMetricState] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.multiGet([THEME_STORAGE_KEY, ACCENT_STORAGE_KEY]).then(([[, theme], [, storedAccent]]) => {
-      if (theme === "light" || theme === "dark" || theme === "system") setPreferenceState(theme);
-      if (storedAccent && ACCENT_COLORS.some((a) => a.value === storedAccent)) setAccentState(storedAccent);
-    });
+    AsyncStorage.multiGet([THEME_STORAGE_KEY, ACCENT_STORAGE_KEY, METRIC_STORAGE_KEY]).then(
+      ([[, theme], [, storedAccent], [, storedMetric]]) => {
+        if (theme === "light" || theme === "dark" || theme === "system") setPreferenceState(theme);
+        if (storedAccent && ACCENT_COLORS.some((a) => a.value === storedAccent)) setAccentState(storedAccent);
+        if (storedMetric !== null) setUseMetricState(storedMetric === "true");
+      }
+    );
   }, []);
 
   function setPreference(pref: ThemePreference) {
@@ -53,10 +60,15 @@ export function ThemeContextProvider({ children }: { children: React.ReactNode }
     AsyncStorage.setItem(ACCENT_STORAGE_KEY, color);
   }
 
+  function setUseMetric(metric: boolean) {
+    setUseMetricState(metric);
+    AsyncStorage.setItem(METRIC_STORAGE_KEY, String(metric));
+  }
+
   const colorScheme: ColorScheme = preference === "system" ? systemScheme : preference;
 
   return (
-    <ThemeContext.Provider value={{ colorScheme, preference, setPreference, accent, setAccent }}>
+    <ThemeContext.Provider value={{ colorScheme, preference, setPreference, accent, setAccent, useMetric, setUseMetric }}>
       {children}
     </ThemeContext.Provider>
   );
