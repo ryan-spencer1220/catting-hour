@@ -2,6 +2,7 @@ import { SelectField } from "@/components/select-field";
 import { AchievementPopup } from "@/components/achievement-popup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { createCat, uploadImage } from "@/lib/cats";
+import { generateCatName } from "@/lib/cat-names";
 import { checkAndUnlockAchievements, checkAndUnlockLocationAchievements, Achievement } from "@/lib/achievements";
 import { useAccent } from "@/context/theme";
 import { supabase } from "@/lib/supabase";
@@ -34,6 +35,7 @@ export default function CreateCat() {
   const lat = parseFloat(params.lat ?? "0");
 
   const [name, setName] = useState("");
+  const [nameUnknown, setNameUnknown] = useState(false);
   const [type, setType] = useState("Unknown");
   const [temperament, setTemperament] = useState("Friendly");
   const [indoor, setIndoor] = useState(true);
@@ -85,11 +87,22 @@ export default function CreateCat() {
     ]);
   }
 
+  function toggleNameUnknown() {
+    if (!nameUnknown) {
+      setName(generateCatName());
+      setNameUnknown(true);
+    } else {
+      setName("");
+      setNameUnknown(false);
+    }
+  }
+
   async function submit() {
-    if (!name.trim()) {
-      Alert.alert("Name required", "Please give this cat a name.");
+    if (!nameUnknown && !name.trim()) {
+      Alert.alert("Name required", "Give this cat a name, or tap \"I don't know their name\".");
       return;
     }
+    const finalName = nameUnknown ? name || generateCatName() : name.trim();
     setSaving(true);
     try {
       let imageUrl: string | null = null;
@@ -105,7 +118,7 @@ export default function CreateCat() {
         country = geo?.country ?? null;
       } catch {}
 
-      await createCat({ name: name.trim(), type, temperament, indoor, notes, lat, lng, image: imageUrl, state, country });
+      await createCat({ name: finalName, nameUnknown, type, temperament, indoor, notes, lat, lng, image: imageUrl, state, country });
 
       try {
         const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
@@ -163,12 +176,26 @@ export default function CreateCat() {
 
         <Text style={labelStyle}>Name</Text>
         <TextInput
-          style={inputStyle}
+          style={[inputStyle, nameUnknown && styles.inputDisabled]}
           value={name}
           onChangeText={setName}
           placeholder="Cat name"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+          editable={!nameUnknown}
         />
+        {nameUnknown && (
+          <Text style={[styles.generatedLabel, { color: dark ? "#6b7280" : "#9ca3af" }]}>
+            Auto-generated — anyone can suggest the real name
+          </Text>
+        )}
+        <Pressable style={styles.unknownToggle} onPress={toggleNameUnknown}>
+          <View style={[styles.unknownCheckbox, nameUnknown && { backgroundColor: accent, borderColor: accent }]}>
+            {nameUnknown && <Text style={styles.unknownCheckmark}>✓</Text>}
+          </View>
+          <Text style={[styles.unknownLabel, { color: dark ? "#d1d5db" : "#374151" }]}>
+            I don&apos;t know their name
+          </Text>
+        </Pressable>
 
         <Text style={labelStyle}>Type</Text>
         <SelectField
@@ -262,4 +289,10 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontWeight: "600" },
   cancel: { width: "100%", backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827", padding: 14, borderRadius: 8, marginTop: 12, alignItems: "center" },
   cancelText: { color: "#111827", fontWeight: "600" },
+  inputDisabled: { opacity: 0.45 },
+  generatedLabel: { fontSize: 12, marginTop: 4, alignSelf: "flex-start" },
+  unknownToggle: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, alignSelf: "flex-start" },
+  unknownCheckbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: "#9ca3af", alignItems: "center", justifyContent: "center" },
+  unknownCheckmark: { color: "#fff", fontSize: 12, fontWeight: "700", lineHeight: 14 },
+  unknownLabel: { fontSize: 14 },
 });

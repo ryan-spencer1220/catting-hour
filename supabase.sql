@@ -59,3 +59,19 @@ create policy "owners_delete" on public.cats
 -- - If you want public select to be restricted, change the select policy to 'owner = auth.uid()' instead of true.
 -- - The 'owner' column is optional but helpful to enforce user-level permissions.
 -- - gen_random_uuid() requires the pgcrypto extension; if not available, you can use uuid_generate_v4() from uuid-ossp extension.
+
+-- name_unknown support (run in Supabase SQL editor)
+ALTER TABLE public.cats ADD COLUMN IF NOT EXISTS name_unknown boolean DEFAULT false;
+
+-- Allow any authenticated user to suggest a real name for unknown-name cats
+CREATE OR REPLACE FUNCTION public.suggest_cat_name(cat_id uuid, suggested_name text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.cats
+  SET name = suggested_name, name_unknown = false
+  WHERE id = cat_id AND name_unknown = true;
+END;
+$$;

@@ -1,7 +1,7 @@
 import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { addCheckin, deleteCheckin, fetchCheckins, type Checkin } from "@/lib/checkins";
-import { deleteCat, fetchCatById } from "@/lib/cats";
+import { deleteCat, fetchCatById, suggestCatName } from "@/lib/cats";
 import { fetchLikes, likeCat, unlikeCat } from "@/lib/likes";
 import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
@@ -84,6 +84,8 @@ export default function CatDetail() {
   const [checkinsLoading, setCheckinsLoading] = useState(true);
   const [newNote, setNewNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [nameSuggestion, setNameSuggestion] = useState("");
+  const [submittingName, setSubmittingName] = useState(false);
 
   // Load cat and current user in parallel
   useEffect(() => {
@@ -130,6 +132,20 @@ export default function CatDetail() {
       .catch(() => {});
     return () => { mounted = false; };
   }, [cat?.lat, cat?.lng]);
+
+  async function handleSuggestName() {
+    if (!nameSuggestion.trim()) return;
+    setSubmittingName(true);
+    try {
+      await suggestCatName(id, nameSuggestion.trim());
+      setCat((prev: any) => prev ? { ...prev, name: nameSuggestion.trim(), nameUnknown: false } : prev);
+      setNameSuggestion("");
+    } catch (e: any) {
+      Alert.alert("Failed to save", e?.message || String(e));
+    } finally {
+      setSubmittingName(false);
+    }
+  }
 
   // Load check-ins
   useEffect(() => {
@@ -411,7 +427,14 @@ export default function CatDetail() {
         <View style={[styles.card, { backgroundColor: bg }]}>
 
           <View style={styles.nameRow}>
-            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
+              {cat.nameUnknown && (
+                <View style={[styles.unknownBadge, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+                  <Text style={[styles.unknownBadgeText, { color: textMuted }]}>name unknown</Text>
+                </View>
+              )}
+            </View>
             <Pressable style={styles.likeBtn} onPress={handleToggleLike} disabled={likeLoading}>
               <Heart
                 size={32}
@@ -454,6 +477,36 @@ export default function CatDetail() {
               </Text>
             </View>
           </View>
+
+          {cat.nameUnknown && currentUserId && (
+            <View style={[styles.nameSuggestionCard, { backgroundColor: dark ? "#1a2535" : "#f9fafb", borderColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
+              <Text style={[styles.nameSuggestionTitle, { color: textPrimary }]}>
+                Do you know this cat&apos;s name?
+              </Text>
+              <Text style={[styles.nameSuggestionSub, { color: textMuted }]}>
+                Help the community — share the real name if you know it.
+              </Text>
+              <View style={styles.nameSuggestionRow}>
+                <TextInput
+                  style={[styles.nameSuggestionInput, { backgroundColor: dark ? "#0f1720" : "#fff", borderColor: dark ? "#374151" : "#e5e7eb", color: textPrimary }]}
+                  placeholder="Their real name…"
+                  placeholderTextColor={textMuted}
+                  value={nameSuggestion}
+                  onChangeText={setNameSuggestion}
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSuggestName}
+                />
+                <Pressable
+                  style={[styles.nameSuggestionBtn, { backgroundColor: accent }, (!nameSuggestion.trim() || submittingName) && { opacity: 0.5 }]}
+                  onPress={handleSuggestName}
+                  disabled={!nameSuggestion.trim() || submittingName}
+                >
+                  <Text style={styles.nameSuggestionBtnText}>{submittingName ? "…" : "Save"}</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
@@ -743,7 +796,16 @@ const styles = StyleSheet.create({
 
   card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 28 },
 
-  name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5, flex: 1 },
+  name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
+  unknownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  unknownBadgeText: { fontSize: 11, fontWeight: "600" },
+  nameSuggestionCard: { marginTop: 16, borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
+  nameSuggestionTitle: { fontSize: 15, fontWeight: "700" },
+  nameSuggestionSub: { fontSize: 13, lineHeight: 18 },
+  nameSuggestionRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  nameSuggestionInput: { flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14 },
+  nameSuggestionBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  nameSuggestionBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   addedBy: { fontSize: 13, marginTop: 4, marginBottom: 2 },
   addedByTappable: { textDecorationLine: "underline" },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },

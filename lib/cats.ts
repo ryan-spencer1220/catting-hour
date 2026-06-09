@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 export type Cat = {
   id: string;
   name: string;
+  nameUnknown?: boolean;
   type?: string;
   temperament?: string;
   indoor?: boolean;
@@ -32,6 +33,7 @@ function mapRow(row: any): Cat | null {
     createdAt: row.created_at ?? row.createdAt ?? null,
     owner: row.owner ?? null,
     ownerName: row.owner_name ?? null,
+    nameUnknown: row.name_unknown ?? false,
     state: row.state ?? null,
     country: row.country ?? null,
   };
@@ -89,6 +91,7 @@ export async function createCat(payload: Partial<Cat>): Promise<Cat> {
     created_at: new Date().toISOString(),
     owner: ownerId,
     owner_name: ownerName,
+    name_unknown: payload.nameUnknown ?? false,
     state: payload.state ?? null,
     country: payload.country ?? null,
   };
@@ -116,6 +119,14 @@ export async function deleteCat(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
   if (count === 0) throw new Error("Could not delete — cat not found.");
+}
+
+export async function suggestCatName(catId: string, name: string): Promise<void> {
+  const { error } = await supabase.rpc("suggest_cat_name", {
+    cat_id: catId,
+    suggested_name: name.trim(),
+  });
+  if (error) throw error;
 }
 
 // Upload a local image URI to the 'cat-images' storage bucket and return a public URL.
