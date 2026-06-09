@@ -1,6 +1,7 @@
 import { useAccent, useThemeContext } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
+import { formatDistance, haversineDistance, radiusToKm } from "@/lib/distance";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -20,29 +21,6 @@ import * as Linking from "expo-linking";
 const RADII = [1, 5, 10] as const;
 type Radius = (typeof RADII)[number];
 
-// Returns distance in kilometres
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDistance(km: number, metric: boolean): string {
-  if (metric) {
-    if (km < 0.1) return "< 0.1 km";
-    return `${km.toFixed(1)} km`;
-  }
-  const miles = km * 0.621371;
-  if (miles < 0.1) return "< 0.1 mi";
-  return `${miles.toFixed(1)} mi`;
-}
 
 type CatWithDistance = Cat & { distance: number };
 
@@ -92,8 +70,7 @@ export default function RecentlyScreen() {
 
   const nearbyCats = useMemo((): CatWithDistance[] => {
     if (!location) return [];
-    // radius is always in the currently selected unit; convert to km for comparison
-    const radiusKm = useMetric ? radius : radius * 1.60934;
+    const radiusKm = radiusToKm(radius, useMetric);
     return cats
       .filter((c) => c.lat != null && c.lng != null)
       .map((c) => ({
