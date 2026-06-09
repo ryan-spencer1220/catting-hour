@@ -2,10 +2,13 @@ import { ThemeContextProvider, useThemeContext } from "@/context/theme";
 import { supabase } from "@/lib/supabase";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import * as Linking from "expo-linking";
+import * as SplashScreen from "expo-splash-screen";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "react-native-reanimated";
+
+SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -22,6 +25,7 @@ export default function RootLayout() {
 function RootLayoutInner() {
   const { colorScheme } = useThemeContext();
   const router = useRouter();
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
     // Handle deep link tokens (e.g. password reset email callback)
@@ -45,10 +49,11 @@ function RootLayoutInner() {
     // Deep link received while app is already running
     const linkSub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
 
-    // Restore an existing session on app launch
+    // Restore an existing session on app launch, then hide splash
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace("/(tabs)/map");
       else router.replace("/");
+      setAppReady(true);
     });
 
     // React to sign-in / sign-out events from anywhere in the app
@@ -65,6 +70,10 @@ function RootLayoutInner() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (appReady) SplashScreen.hideAsync();
+  }, [appReady]);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
