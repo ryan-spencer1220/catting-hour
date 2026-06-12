@@ -2,9 +2,9 @@ import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, fetchFollowingCats } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Cat, PawPrint, Users } from "lucide-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Skeleton } from "@/components/skeleton";
 import { EmptyState } from "@/components/empty-state";
@@ -74,10 +74,12 @@ export default function FeedScreen() {
     }
   }
 
-  useEffect(() => {
-    loadCats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, currentUserId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadCats();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filter, currentUserId])
+  );
 
   const sorted = useMemo(() => {
     try {
