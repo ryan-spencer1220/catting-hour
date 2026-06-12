@@ -4,7 +4,7 @@ import { fetchAllCats, fetchFollowingCats } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Cat, PawPrint, Users } from "lucide-react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Skeleton } from "@/components/skeleton";
 import { EmptyState } from "@/components/empty-state";
