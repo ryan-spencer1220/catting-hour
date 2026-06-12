@@ -50,6 +50,9 @@ export async function addCheckin(catId: string, note: string): Promise<Checkin> 
 }
 
 export async function deleteCheckin(id: string): Promise<void> {
-  const { error } = await supabase.from("checkins").delete().eq("id", id);
+  const { data } = await supabase.auth.getUser();
+  const userId = (data as any)?.user?.id;
+  if (!userId) throw new Error("Not authenticated");
+  const { error } = await supabase.from("checkins").delete().eq("id", id).eq("author", userId);
   if (error) throw error;
 }
