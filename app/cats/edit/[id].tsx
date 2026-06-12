@@ -12,7 +12,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -43,7 +42,7 @@ export default function EditCat() {
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [temperament, setTemperament] = useState("");
-  const [indoor, setIndoor] = useState(true);
+  const [indoor, setIndoor] = useState<boolean | null>(true);
   const [notes, setNotes] = useState("");
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [newImageUri, setNewImageUri] = useState<string | null>(null);
@@ -56,7 +55,7 @@ export default function EditCat() {
         setName(cat.name ?? "");
         setType(cat.type ?? "");
         setTemperament(cat.temperament ?? "");
-        setIndoor(cat.indoor ?? true);
+        setIndoor(cat.indoor === undefined ? true : cat.indoor);
         setNotes(cat.notes ?? "");
         setExistingImageUrl(cat.image ?? null);
       })
@@ -179,15 +178,21 @@ export default function EditCat() {
           placeholder="Select temperament…"
         />
 
-        <View style={styles.row}>
-          <Text style={labelStyle}>Indoor</Text>
-          <Switch
-            value={indoor}
-            onValueChange={setIndoor}
-            trackColor={{ false: "#e5e7eb", true: accent }}
-            thumbColor="#fff"
-            ios_backgroundColor="#e5e7eb"
-          />
+        <Text style={labelStyle}>Environment</Text>
+        <View style={styles.segmentRow}>
+          {([true, null, false] as const).map((val) => {
+            const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
+            const active = indoor === val;
+            return (
+              <Pressable
+                key={label}
+                style={[styles.segment, active && { backgroundColor: accent }]}
+                onPress={() => setIndoor(val)}
+              >
+                <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={labelStyle}>Photo</Text>
@@ -292,4 +297,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelText: { color: "#111827", fontWeight: "600" },
+  segmentRow: { flexDirection: "row", width: "100%", borderRadius: 8, overflow: "hidden", borderWidth: 1, borderColor: "#e5e7eb" },
+  segment: { flex: 1, paddingVertical: 10, alignItems: "center" },
+  segmentText: { fontSize: 14, fontWeight: "600" },
 });

@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { Settings as SettingsIcon } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -26,7 +26,6 @@ export default function SettingsScreen() {
     setPreference(enabled ? "dark" : "system");
   }
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [syncFavorites, setSyncFavorites] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -73,20 +72,6 @@ export default function SettingsScreen() {
       await disableNotifications();
     }
     setNotificationsEnabled(enabled);
-  }
-
-  function confirmClearCache() {
-    Alert.alert("Clear cache", "Are you sure you want to clear cached data?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: () => {
-          // TODO: hook up actual cache clearing logic
-          Alert.alert("Cache cleared", "App cache was cleared successfully.");
-        },
-      },
-    ]);
   }
 
   function handleDeleteAccount() {
@@ -157,7 +142,7 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.inner}>
+      <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
         {/* Page header */}
         <View style={styles.pageHeader}>
           <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
@@ -211,10 +196,6 @@ export default function SettingsScreen() {
             <Switch {...switchProps} value={notificationsEnabled} onValueChange={handleToggleNotifications} />
           </View>
 
-          <View style={styles.row}>
-            <ThemedText style={styles.rowLabel}>Sync favorites</ThemedText>
-            <Switch {...switchProps} value={syncFavorites} onValueChange={setSyncFavorites} />
-          </View>
         </View>
 
         {/* Units */}
@@ -229,26 +210,15 @@ export default function SettingsScreen() {
             </View>
 
             <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity style={[styles.unitButton, useMetric && styles.unitButtonActive]} onPress={() => setUseMetric(true)}>
-                <ThemedText style={[styles.unitText, useMetric && styles.unitTextActive]}>km</ThemedText>
+              <TouchableOpacity style={[styles.unitButton, useMetric && { backgroundColor: accent }]} onPress={() => setUseMetric(true)}>
+                <ThemedText style={[styles.unitText, useMetric && { color: "#fff", fontWeight: "700" }]}>km</ThemedText>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.unitButton, !useMetric && styles.unitButtonActive]} onPress={() => setUseMetric(false)}>
-                <ThemedText style={[styles.unitText, !useMetric && styles.unitTextActive]}>mi</ThemedText>
+              <TouchableOpacity style={[styles.unitButton, !useMetric && { backgroundColor: accent }]} onPress={() => setUseMetric(false)}>
+                <ThemedText style={[styles.unitText, !useMetric && { color: "#fff", fontWeight: "700" }]}>mi</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-
-        {/* Data */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Data
-          </ThemedText>
-
-          <TouchableOpacity style={styles.action} onPress={confirmClearCache}>
-            <ThemedText style={styles.actionText}>Clear cache</ThemedText>
-          </TouchableOpacity>
         </View>
 
         {/* Account */}
@@ -292,7 +262,7 @@ export default function SettingsScreen() {
         <View style={{ paddingVertical: 24 }}>
           <ThemedText style={styles.muted}>App version: 1.0.0</ThemedText>
         </View>
-      </View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -318,12 +288,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "transparent",
   },
-  unitButtonActive: { backgroundColor: "#e6f2fb" },
   swatches: { flexDirection: "row", gap: 8 },
   swatch: { width: 26, height: 26, borderRadius: 13 },
   swatchActive: { borderWidth: 3, borderColor: "#fff", shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 3, elevation: 3 },
   unitText: { fontSize: 14, color: "#374151" },
-  unitTextActive: { fontWeight: "700" },
   action: { paddingVertical: 12 },
   actionText: { fontSize: 16 },
   danger: { marginTop: 8 },

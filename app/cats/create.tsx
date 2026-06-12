@@ -11,7 +11,7 @@ import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 const CAT_TYPES = [
   "Domestic Shorthair", "Domestic Longhair", "Tabby", "Calico", "Tuxedo",
@@ -38,7 +38,7 @@ export default function CreateCat() {
   const [nameUnknown, setNameUnknown] = useState(false);
   const [type, setType] = useState("Unknown");
   const [temperament, setTemperament] = useState("Friendly");
-  const [indoor, setIndoor] = useState(true);
+  const [indoor, setIndoor] = useState<boolean | null>(true);
   const [notes, setNotes] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -215,15 +215,21 @@ export default function CreateCat() {
           placeholder="Select temperament…"
         />
 
-        <View style={styles.row}>
-          <Text style={labelStyle}>Indoor</Text>
-          <Switch
-            value={indoor}
-            onValueChange={setIndoor}
-            trackColor={{ false: "#e5e7eb", true: accent }}
-            thumbColor="#fff"
-            ios_backgroundColor="#e5e7eb"
-          />
+        <Text style={labelStyle}>Environment</Text>
+        <View style={styles.segmentRow}>
+          {([true, null, false] as const).map((val) => {
+            const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
+            const active = indoor === val;
+            return (
+              <Pressable
+                key={label}
+                style={[styles.segment, active && { backgroundColor: accent }]}
+                onPress={() => setIndoor(val)}
+              >
+                <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={labelStyle}>Photo</Text>
@@ -295,4 +301,7 @@ const styles = StyleSheet.create({
   unknownCheckbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: "#9ca3af", alignItems: "center", justifyContent: "center" },
   unknownCheckmark: { color: "#fff", fontSize: 12, fontWeight: "700", lineHeight: 14 },
   unknownLabel: { fontSize: 14 },
+  segmentRow: { flexDirection: "row", width: "100%", borderRadius: 8, overflow: "hidden", borderWidth: 1, borderColor: "#e5e7eb" },
+  segment: { flex: 1, paddingVertical: 10, alignItems: "center" },
+  segmentText: { fontSize: 14, fontWeight: "600" },
 });

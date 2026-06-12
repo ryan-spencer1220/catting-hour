@@ -473,7 +473,7 @@ export default function CatDetail() {
             ) : null}
             <View style={[styles.badge, { backgroundColor: dark ? "#2d1f4e" : "#ede9fe" }]}>
               <Text style={[styles.badgeText, { color: dark ? accent : "#6d28d9" }]}>
-                {cat.indoor ? "Indoor" : "Outdoor"}
+                {cat.indoor === null ? "Indoor & Outdoor" : cat.indoor ? "Indoor" : "Outdoor"}
               </Text>
             </View>
           </View>
@@ -513,7 +513,7 @@ export default function CatDetail() {
           <View style={styles.detailList}>
             {cat.type ? <DetailRow label="Type" value={cat.type} dark={dark} /> : null}
             {cat.temperament ? <DetailRow label="Temperament" value={cat.temperament} dark={dark} /> : null}
-            <DetailRow label="Environment" value={cat.indoor ? "Indoor" : "Outdoor"} dark={dark} />
+            <DetailRow label="Environment" value={cat.indoor === null ? "Indoor & Outdoor" : cat.indoor ? "Indoor" : "Outdoor"} dark={dark} />
             {cat.lat != null && cat.lng != null ? (
               <DetailRow
                 label="Location"

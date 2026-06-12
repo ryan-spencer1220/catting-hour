@@ -6,7 +6,7 @@ export type Cat = {
   nameUnknown?: boolean;
   type?: string;
   temperament?: string;
-  indoor?: boolean;
+  indoor?: boolean | null;
   notes?: string;
   lat?: number;
   lng?: number;
@@ -25,7 +25,7 @@ function mapRow(row: any): Cat | null {
     name: row.name,
     type: row.type,
     temperament: row.temperament,
-    indoor: !!row.indoor,
+    indoor: row.indoor === null || row.indoor === undefined ? null : !!row.indoor,
     notes: row.notes,
     lat: row.lat !== undefined ? Number(row.lat) : undefined,
     lng: row.lng !== undefined ? Number(row.lng) : undefined,
@@ -83,7 +83,7 @@ export async function createCat(payload: Partial<Cat>): Promise<Cat> {
     name: payload.name ?? "Unnamed",
     type: payload.type ?? null,
     temperament: payload.temperament ?? null,
-    indoor: payload.indoor ?? false,
+    indoor: payload.indoor === undefined ? false : payload.indoor,
     notes: payload.notes ?? null,
     lat: payload.lat ?? null,
     lng: payload.lng ?? null,
