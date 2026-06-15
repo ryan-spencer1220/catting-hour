@@ -7,6 +7,7 @@ import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/li
 import { supabase } from "@/lib/supabase";
 import { ChevronLeft, ChevronRight, Heart, PawPrint } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Linking from "expo-linking";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -626,6 +627,28 @@ export default function CatDetail() {
                 <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete"}</Text>
               </Pressable>
             )}
+
+            {currentUserId && cat?.owner !== currentUserId && (
+              <Pressable
+                style={styles.reportBtn}
+                onPress={() =>
+                  Alert.alert("Report content", "Is something wrong with this listing?", [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Report",
+                      style: "destructive",
+                      onPress: () => {
+                        const subject = encodeURIComponent(`Report: ${cat?.name ?? "Cat"} (ID: ${id})`);
+                        const body = encodeURIComponent(`Please describe the issue:\n\n`);
+                        Linking.openURL(`mailto:ryan.spencer1220@gmail.com?subject=${subject}&body=${body}`);
+                      },
+                    },
+                  ])
+                }
+              >
+                <Text style={styles.reportBtnText}>Report</Text>
+              </Pressable>
+            )}
           </View>
 
         </View>
@@ -875,4 +898,6 @@ const styles = StyleSheet.create({
   editBtnText: { fontWeight: "700", fontSize: 15 },
   deleteBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "#dc2626", alignItems: "center" },
   deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  reportBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: "center" },
+  reportBtnText: { color: "#9ca3af", fontWeight: "600", fontSize: 14 },
 });
