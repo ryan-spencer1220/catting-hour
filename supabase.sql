@@ -178,15 +178,38 @@ create policy "cat_photos_insert" on public.cat_photos
 create policy "cat_photos_delete" on public.cat_photos
   for delete using ( uploaded_by = auth.uid() );
 
--- Allow any authenticated user to suggest a real name for unknown-name cats
+-- Allow authenticated users to suggest a real name for unknown-name cats
 CREATE OR REPLACE FUNCTION public.suggest_cat_name(cat_id uuid, suggested_name text)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
   UPDATE public.cats
   SET name = suggested_name, name_unknown = false
   WHERE id = cat_id AND name_unknown = true;
 END;
 $$;
+
+-- Restrict suggest_cat_name to authenticated users only
+REVOKE EXECUTE ON FUNCTION public.suggest_cat_name(uuid, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.suggest_cat_name(uuid, text) TO authenticated;
+
+-- ────────────────────────────────────────────────
+-- Input length constraints
+-- ────────────────────────────────────────────────
+ALTER TABLE public.cats
+  ADD CONSTRAINT cats_name_length    CHECK (char_length(name) BETWEEN 1 AND 100),
+  ADD CONSTRAINT cats_notes_length   CHECK (char_length(notes) <= 1000),
+  ADD CONSTRAINT cats_type_length    CHECK (char_length(type) <= 100),
+  ADD CONSTRAINT cats_temperament_length CHECK (char_length(temperament) <= 100);
+
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_username_length CHECK (char_length(username) BETWEEN 1 AND 50),
+  ADD CONSTRAINT profiles_city_length     CHECK (char_length(city) <= 100);
+
+ALTER TABLE public.checkins
+  ADD CONSTRAINT checkins_note_length CHECK (char_length(note) BETWEEN 1 AND 500);
