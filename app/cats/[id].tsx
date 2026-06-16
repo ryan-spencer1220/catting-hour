@@ -31,7 +31,6 @@ import { FadeImage } from "@/components/fade-image";
 import { Skeleton } from "@/components/skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const IMAGE_HEIGHT = 300;
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -49,7 +48,8 @@ export default function CatDetail() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = params.id ?? "";
   const router = useRouter();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const IMAGE_HEIGHT = Math.round(screenHeight * 0.55);
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
   const accent = useAccent();
@@ -259,7 +259,7 @@ export default function CatDetail() {
   }
 
   function handleDeleteCheckin(checkinId: string) {
-    Alert.alert("Remove check-in", "Delete this check-in?", [
+    Alert.alert("Delete comment", "Delete this comment?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -347,10 +347,8 @@ export default function CatDetail() {
       style={[styles.screen, { backgroundColor: bg }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-        {/* ── Photo gallery ── */}
-        <View style={[styles.imageContainer, { width: screenWidth }]}>
+      {/* ── Photo gallery — fixed, does not scroll ── */}
+      <View style={[styles.imageContainer, { width: screenWidth, height: IMAGE_HEIGHT }]}>
           {photoUrls.length > 0 ? (
             <ScrollView
               ref={photoScrollRef}
@@ -422,9 +420,14 @@ export default function CatDetail() {
               : <Text style={styles.addPhotoBtnText}>+ Photo</Text>
             }
           </Pressable>
-        </View>
+      </View>
 
-        {/* ── Content card ── */}
+      {/* ── Content card — scrollable ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={[styles.card, { backgroundColor: bg }]}>
 
           <View style={styles.nameRow}>
@@ -544,48 +547,35 @@ export default function CatDetail() {
             </>
           ) : null}
 
-          {/* ── Check-ins ── */}
+          {/* ── Comments ── */}
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>Check-ins</Text>
-
-          <View style={styles.addRow}>
-            <TextInput
-              style={[styles.checkinInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
-              placeholder="Saw Ringo playing in the sun…"
-              placeholderTextColor={textMuted}
-              value={newNote}
-              onChangeText={setNewNote}
-              multiline
-              maxLength={300}
-            />
-            <Pressable
-              style={[
-                styles.postBtn,
-                { backgroundColor: dark ? accent : "#111827" },
-                (!newNote.trim() || submitting) && { opacity: 0.4 },
-              ]}
-              onPress={handleAddCheckin}
-              disabled={!newNote.trim() || submitting}
-            >
-              <Text style={styles.postBtnText}>{submitting ? "…" : "Post"}</Text>
-            </Pressable>
-          </View>
+          <Text style={[styles.sectionLabel, { color: textMuted }]}>
+            Comments{checkins.length > 0 ? ` (${checkins.length})` : ""}
+          </Text>
 
           {checkinsLoading ? (
             <ActivityIndicator size="small" color={dark ? accent : "#111827"} style={{ marginTop: 16 }} />
           ) : checkins.length === 0 ? (
-            <Text style={[styles.emptyCheckins, { color: textMuted }]}>No sightings logged yet — be the first! 🐾</Text>
+            <Text style={[styles.emptyCheckins, { color: textMuted }]}>No comments yet — be the first!</Text>
           ) : (
             checkins.map((c) => (
               <Pressable
                 key={c.id}
-                style={[styles.checkinItem, { backgroundColor: inputBg, borderColor: inputBorder }]}
+                style={styles.commentRow}
                 onLongPress={() => handleDeleteCheckin(c.id)}
               >
-                <Text style={[styles.checkinNote, { color: textPrimary }]}>{c.note}</Text>
-                <Text style={[styles.checkinTime, { color: textMuted }]}>
-                  {c.authorName ? `${c.authorName} · ` : ""}{timeAgo(c.createdAt)}
-                </Text>
+                <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
+                  <Text style={styles.commentAvatarText}>
+                    {(c.authorName ?? "?")[0].toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.commentText, { color: textPrimary }]}>
+                    <Text style={styles.commentAuthor}>{c.authorName ?? "Anonymous"} </Text>
+                    {c.note}
+                  </Text>
+                  <Text style={[styles.commentTime, { color: textMuted }]}>{timeAgo(c.createdAt)}</Text>
+                </View>
               </Pressable>
             ))
           )}
@@ -658,6 +648,28 @@ export default function CatDetail() {
       <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <ChevronLeft size={28} color="#fff" />
       </Pressable>
+
+      {/* ── Fixed comment input bar ── */}
+      <View style={[styles.commentBar, { backgroundColor: bg, borderTopColor: inputBorder, paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <TextInput
+          style={[styles.commentBarInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+          placeholder="Add a comment…"
+          placeholderTextColor={textMuted}
+          value={newNote}
+          onChangeText={setNewNote}
+          maxLength={300}
+          returnKeyType="send"
+          onSubmitEditing={handleAddCheckin}
+          blurOnSubmit={false}
+        />
+        <Pressable
+          style={[styles.commentBarPost, { backgroundColor: accent }, (!newNote.trim() || submitting) && { opacity: 0.4 }]}
+          onPress={handleAddCheckin}
+          disabled={!newNote.trim() || submitting}
+        >
+          <Text style={styles.commentBarPostText}>{submitting ? "…" : "Post"}</Text>
+        </Pressable>
+      </View>
 
       {/* ── Lightbox ── */}
       <Modal
@@ -759,7 +771,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  imageContainer: { height: IMAGE_HEIGHT },
+  imageContainer: {},
   placeholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   placeholderLabel: { marginTop: 8, fontSize: 14, fontWeight: "600" },
   placeholderSub: { fontSize: 12, marginTop: 4 },
@@ -848,17 +860,35 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 },
   notesText: { fontSize: 15, lineHeight: 23 },
 
-  addRow: { flexDirection: "row", gap: 8, alignItems: "flex-end" },
-  checkinInput: {
-    flex: 1, borderWidth: 1, borderRadius: 10, padding: 10,
-    fontSize: 14, minHeight: 44, maxHeight: 100,
+  commentBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
-  postBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  postBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  commentBarInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  commentBarPost: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  commentBarPostText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  commentRow: { flexDirection: "row", gap: 10, paddingVertical: 8, alignItems: "flex-start" },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  commentAvatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  commentAuthor: { fontWeight: "700" },
+  commentText: { fontSize: 14, lineHeight: 20 },
+  commentTime: { fontSize: 11, marginTop: 3 },
   emptyCheckins: { fontSize: 14, marginTop: 4, marginBottom: 8 },
-  checkinItem: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 10 },
-  checkinNote: { fontSize: 14, lineHeight: 20 },
-  checkinTime: { fontSize: 12, marginTop: 4 },
 
   lightboxBg: { flex: 1, backgroundColor: "#000" },
   lightboxClose: {
