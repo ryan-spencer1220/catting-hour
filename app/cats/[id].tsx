@@ -73,9 +73,7 @@ export default function CatDetail() {
   const [likeLoading, setLikeLoading] = useState(false);
 
   const [photos, setPhotos] = useState<CatPhoto[]>([]);
-  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [addingPhoto, setAddingPhoto] = useState(false);
-  const photoScrollRef = useRef<ScrollView>(null);
   const lightboxScrollRef = useRef<ScrollView>(null);
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -163,11 +161,7 @@ export default function CatDetail() {
     setAddingPhoto(true);
     try {
       const photo = await addCatPhoto(id, uri);
-      setPhotos((prev) => {
-        const next = [...prev, photo];
-        setActivePhotoIndex(next.length - 1);
-        return next;
-      });
+      setPhotos((prev) => [...prev, photo]);
     } catch (e: any) {
       Alert.alert("Upload failed", e?.message || String(e));
     } finally {
@@ -209,10 +203,7 @@ export default function CatDetail() {
     }
   }
 
-  function scrollToPhoto(index: number) {
-    photoScrollRef.current?.scrollTo({ x: index * screenWidth, animated: true });
-    setActivePhotoIndex(index);
-  }
+
 
   function handleAddPhoto() {
     Alert.alert("Add photo", "Choose a source", [
@@ -231,11 +222,7 @@ export default function CatDetail() {
         onPress: async () => {
           try {
             await deleteCatPhoto(photo.id);
-            setPhotos((prev) => {
-              const next = prev.filter((p) => p.id !== photo.id);
-              setActivePhotoIndex((i) => Math.min(i, Math.max(next.length - 1, 0)));
-              return next;
-            });
+            setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
           } catch (e: any) {
             Alert.alert("Failed to delete photo", e?.message || String(e));
           }
@@ -340,71 +327,55 @@ export default function CatDetail() {
     ? photos.map((p) => p.url)
     : cat.image ? [cat.image] : [];
 
-  const showDots = photoUrls.length > 1;
-
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: bg }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* ── Photo gallery — fixed, does not scroll ── */}
-      <View style={[styles.imageContainer, { width: screenWidth, height: IMAGE_HEIGHT }]}>
-          {photoUrls.length > 0 ? (
-            <ScrollView
-              ref={photoScrollRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              scrollEventThrottle={16}
-              onMomentumScrollEnd={(e) =>
-                setActivePhotoIndex(Math.round(e.nativeEvent.contentOffset.x / screenWidth))
-              }
-            >
-              {photoUrls.map((url, i) => (
-                <Pressable
-                  key={i}
-                  style={{ width: screenWidth, height: IMAGE_HEIGHT }}
-                  onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
-                  onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
-                >
-                  <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
-                </Pressable>
-              ))}
-            </ScrollView>
-          ) : (
-            <View style={[styles.placeholder, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
+      {/* ── Main scroll — photos + content ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Photo section ── */}
+        <View style={styles.photoSection}>
+          {photoUrls.length === 0 ? (
+            <View style={[styles.placeholder, { height: IMAGE_HEIGHT, backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
               <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} />
               <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
               <Text style={[styles.placeholderSub, { color: textMuted }]}>Tap + Photo to add one</Text>
             </View>
-          )}
-
-          {/* Swipe arrows */}
-          {showDots && activePhotoIndex > 0 && (
+          ) : photoUrls.length === 1 ? (
             <Pressable
-              style={[styles.swipeArrow, styles.swipeArrowLeft]}
-              onPress={() => scrollToPhoto(activePhotoIndex - 1)}
+              style={{ width: screenWidth, height: IMAGE_HEIGHT }}
+              onPress={() => { setLightboxIndex(0); setLightboxVisible(true); }}
+              onLongPress={() => photos[0] && handleDeletePhoto(photos[0])}
             >
-              <ChevronLeft size={26} color="#fff" />
+              <FadeImage uri={photoUrls[0]} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
             </Pressable>
-          )}
-          {showDots && activePhotoIndex < photoUrls.length - 1 && (
-            <Pressable
-              style={[styles.swipeArrow, styles.swipeArrowRight]}
-              onPress={() => scrollToPhoto(activePhotoIndex + 1)}
-            >
-              <ChevronRight size={26} color="#fff" />
-            </Pressable>
-          )}
-
-          {/* Dots */}
-          {showDots && (
-            <View style={styles.dots}>
-              {photoUrls.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, { opacity: i === activePhotoIndex ? 1 : 0.35 }]}
-                />
+          ) : (
+            /* Masonry grid — two columns */
+            <View style={styles.masonryRow}>
+              {[0, 1].map((col) => (
+                <View key={col} style={styles.masonryCol}>
+                  {photoUrls
+                    .map((url, i) => ({ url, i }))
+                    .filter(({ i }) => i % 2 === col)
+                    .map(({ url, i }) => {
+                      const cellH = i === 0 ? screenWidth * 0.6 : screenWidth * 0.4;
+                      return (
+                        <Pressable
+                          key={i}
+                          style={{ width: "100%", height: cellH }}
+                          onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
+                          onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
+                        >
+                          <FadeImage uri={url} style={{ width: "100%", height: "100%" }} />
+                        </Pressable>
+                      );
+                    })}
+                </View>
               ))}
             </View>
           )}
@@ -420,14 +391,7 @@ export default function CatDetail() {
               : <Text style={styles.addPhotoBtnText}>+ Photo</Text>
             }
           </Pressable>
-      </View>
-
-      {/* ── Content card — scrollable ── */}
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+        </View>
         <View style={[styles.card, { backgroundColor: bg }]}>
 
           <View style={styles.nameRow}>
@@ -776,31 +740,9 @@ const styles = StyleSheet.create({
   placeholderLabel: { marginTop: 8, fontSize: 14, fontWeight: "600" },
   placeholderSub: { fontSize: 12, marginTop: 4 },
 
-  dots: {
-    position: "absolute",
-    bottom: 44,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-  },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
-
-  swipeArrow: {
-    position: "absolute",
-    top: "50%",
-    marginTop: -20,
-    width: 36,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.28)",
-    borderRadius: 8,
-  },
-  swipeArrowLeft: { left: 10 },
-  swipeArrowRight: { right: 10 },
-  swipeArrowText: {},
+  photoSection: { position: "relative" },
+  masonryRow: { flexDirection: "row", gap: 2 },
+  masonryCol: { flex: 1, gap: 2 },
 
   addPhotoBtn: {
     position: "absolute",
@@ -829,7 +771,7 @@ const styles = StyleSheet.create({
   },
   backBtnText: {},
 
-  card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 28 },
+  card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 40 },
 
   name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
   unknownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -928,6 +870,6 @@ const styles = StyleSheet.create({
   editBtnText: { fontWeight: "700", fontSize: 15 },
   deleteBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "#dc2626", alignItems: "center" },
   deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  reportBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: "center" },
+  reportBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "#e5e7eb" },
   reportBtnText: { color: "#9ca3af", fontWeight: "600", fontSize: 14 },
 });
