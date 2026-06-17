@@ -1,6 +1,6 @@
 import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { uploadImage } from "@/lib/cats";
+import { fetchAllCats, type Cat, uploadImage } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { ACHIEVEMENTS, checkAndUnlockFollowerAchievements, getUnlockedAchievements } from "@/lib/achievements";
@@ -11,33 +11,22 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { FadeImage } from "@/components/fade-image";
 import { Skeleton } from "@/components/skeleton";
-import { Calendar, Cat, Clock, Globe, Lock, MapPin, PawPrint, Pencil } from "lucide-react-native";
+import { EmptyState } from "@/components/empty-state";
+import { Lock, MapPin, PawPrint, Pencil } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-function timeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return "Just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-type Stats = {
-  totalCats: number;
-  myCats: number;
-  myCheckins: number;
-  lastCatAdded: { name: string; createdAt: string } | null;
-};
+const GRID_GAP = 3;
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -45,20 +34,21 @@ export default function ProfileScreen() {
   const accent = useAccent();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
 
-  const bg = dark ? "#0f1720" : "#f5f5f7";
+  const bg = dark ? "#0f1720" : "#f0f0f0";
   const card = dark ? "#1a2535" : "#fff";
   const textPrimary = dark ? "#fff" : "#111827";
   const textMuted = dark ? "#6b7280" : "#9ca3af";
   const divider = dark ? "#1e2d3d" : "#e5e7eb";
-  const inputBg = dark ? "#0f1720" : "#f9fafb";
-  const inputBorder = dark ? "#374151" : "#e5e7eb";
+
+  const cardWidth = (screenWidth - GRID_GAP) / 2;
 
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-
+  const [myCats, setMyCats] = useState<Cat[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+  const [totalCheckins, setTotalCheckins] = useState<number | null>(null);
   const [editingCity, setEditingCity] = useState(false);
   const [cityDraft, setCityDraft] = useState("");
   const [savingCity, setSavingCity] = useState(false);
@@ -75,76 +65,36 @@ export default function ProfileScreen() {
       let mounted = true;
 
       async function load() {
-        // Load user — redirect to login if not authenticated
         try {
           const { data } = await supabase.auth.getUser();
           const u = data?.user ?? null;
-          if (mounted) {
-            if (!u) router.replace("/");
-            else setUser(u);
-          }
+          if (!mounted) return;
+          if (!u) { router.replace("/"); return; }
+          setUser(u);
+
+          const userId = u.id;
+
+          const [counts, allCats, { count: checkinCount }] = await Promise.all([
+            fetchFollowCounts(userId),
+            fetchAllCats(),
+            supabase.from("checkins").select("*", { count: "exact", head: true }).eq("author", userId),
+          ]);
+
+          if (!mounted) return;
+          setFollowCounts(counts);
+          setMyCats(allCats.filter((c) => c.owner === userId));
+          setTotalCheckins(checkinCount ?? 0);
+          setCatsLoading(false);
+
+          await checkAndUnlockFollowerAchievements(counts.followers);
         } catch {
           if (mounted) router.replace("/");
         } finally {
           if (mounted) setLoading(false);
         }
-
-        // Load follow counts
-        try {
-          const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
-          if (userId) {
-            const counts = await fetchFollowCounts(userId);
-            if (mounted) setFollowCounts(counts);
-            await checkAndUnlockFollowerAchievements(counts.followers);
-          }
-        } catch {}
-
-        // Load stats
-        try {
-          const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
-
-          const [
-            { count: totalCats },
-            { count: myCats },
-            { count: myCheckins },
-            { data: lastCatRow },
-          ] = await Promise.all([
-            supabase.from("cats").select("*", { count: "exact", head: true }),
-            userId
-              ? supabase.from("cats").select("*", { count: "exact", head: true }).eq("owner", userId)
-              : Promise.resolve({ count: 0 }),
-            userId
-              ? supabase.from("checkins").select("*", { count: "exact", head: true }).eq("author", userId)
-              : Promise.resolve({ count: 0 }),
-            supabase
-              .from("cats")
-              .select("name, created_at")
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ]);
-
-          if (mounted) {
-            setStats({
-              totalCats: totalCats ?? 0,
-              myCats: myCats ?? 0,
-              myCheckins: myCheckins ?? 0,
-              lastCatAdded: lastCatRow
-                ? { name: lastCatRow.name, createdAt: lastCatRow.created_at }
-                : null,
-            });
-          }
-        } catch {
-          if (mounted) setStats(null);
-        } finally {
-          if (mounted) setStatsLoading(false);
-        }
       }
 
-      getUnlockedAchievements().then((ids) => {
-        if (mounted) setUnlockedIds(ids);
-      });
-
+      getUnlockedAchievements().then((ids) => { if (mounted) setUnlockedIds(ids); });
       load();
       return () => { mounted = false; };
     }, [router])
@@ -166,7 +116,6 @@ export default function ProfileScreen() {
       if (result.canceled) return;
       const uri = result.assets?.[0]?.uri;
       if (!uri) return;
-
       setUploadingAvatar(true);
       const url = await uploadImage(uri);
       await Promise.all([
@@ -204,17 +153,9 @@ export default function ProfileScreen() {
     }
   }
 
-  function startEditCity() {
-    setCityDraft(user?.user_metadata?.city ?? "");
-    setEditingCity(true);
-  }
-
   async function saveUsername() {
     const trimmed = usernameDraft.trim();
-    if (!trimmed) {
-      Alert.alert("Required", "Username cannot be empty.");
-      return;
-    }
+    if (!trimmed) { Alert.alert("Required", "Username cannot be empty."); return; }
     if (!/^[a-zA-Z0-9_-]{2,30}$/.test(trimmed)) {
       Alert.alert("Invalid username", "Username must be 2–30 characters: letters, numbers, _ or -");
       return;
@@ -232,18 +173,10 @@ export default function ProfileScreen() {
       setEditingUsername(false);
     } catch (e: any) {
       const msg = e?.message || String(e);
-      Alert.alert(
-        "Failed to save",
-        msg.includes("unique") ? "That username is already taken." : msg
-      );
+      Alert.alert("Failed to save", msg.includes("unique") ? "That username is already taken." : msg);
     } finally {
       setSavingUsername(false);
     }
-  }
-
-  function startEditUsername() {
-    setUsernameDraft(user?.user_metadata?.username ?? "");
-    setEditingUsername(true);
   }
 
   function handleSignOut() {
@@ -254,13 +187,9 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           setSigningOut(true);
-          try {
-            await supabaseSignOut();
-          } catch (e: any) {
-            Alert.alert("Sign out failed", e?.message || String(e));
-          } finally {
-            setSigningOut(false);
-          }
+          try { await supabaseSignOut(); }
+          catch (e: any) { Alert.alert("Sign out failed", e?.message || String(e)); }
+          finally { setSigningOut(false); }
         },
       },
     ]);
@@ -269,347 +198,370 @@ export default function ProfileScreen() {
   const displayName = user?.user_metadata?.username ?? "";
   const avatarUrl = user?.user_metadata?.avatar_url ?? null;
   const city = user?.user_metadata?.city ?? null;
-  const memberSince = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
-    : null;
+  const initials = displayName.slice(0, 2).toUpperCase() || "?";
 
-  const initials = displayName.slice(0, 2).toUpperCase();
+  const inputBg = dark ? "#0f1720" : "#f9fafb";
+  const inputBorder = dark ? "#374151" : "#e5e7eb";
 
-  return (
-    <ScrollView
-      style={[styles.screen, { backgroundColor: bg }]}
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 32) }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── Header band ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: accent }]}>
+  const ListHeader = (
+    <View>
+      {/* ── Hero header ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: accent }]}>
+        {/* Decorative paw prints */}
+        <View pointerEvents="none" style={styles.pawTL}>
+          <PawPrint size={80} color="rgba(255,255,255,0.09)" />
+        </View>
+        <View pointerEvents="none" style={styles.pawTR}>
+          <PawPrint size={52} color="rgba(255,255,255,0.07)" />
+        </View>
+        <View pointerEvents="none" style={styles.pawBR}>
+          <PawPrint size={96} color="rgba(255,255,255,0.055)" />
+        </View>
 
-        {/* Avatar column */}
+        {/* Avatar */}
         <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
           {uploadingAvatar ? (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <View style={styles.avatar}>
               <ActivityIndicator color="#fff" />
             </View>
           ) : avatarUrl ? (
             <FadeImage uri={avatarUrl} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.initials}>{initials}</Text>
+              {loading
+                ? <ActivityIndicator color="rgba(255,255,255,0.6)" />
+                : <Text style={styles.initials}>{initials}</Text>
+              }
             </View>
           )}
           <View style={[styles.avatarEditBadge, { borderColor: accent }]}>
-            <Pencil size={12} color={accent} />
+            <Pencil size={11} color={accent} />
           </View>
         </Pressable>
 
-        {/* Info column */}
-        {loading ? (
-          <View style={{ flex: 1, gap: 10, justifyContent: "center" }}>
-            <Skeleton style={{ height: 22, width: 130 }} light />
-            <Skeleton style={{ height: 14, width: 80 }} light />
+        {/* Username */}
+        {editingUsername ? (
+          <View style={styles.editRow}>
+            <TextInput
+              style={[styles.editInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+              value={usernameDraft}
+              onChangeText={setUsernameDraft}
+              placeholder="Username"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={saveUsername}
+            />
+            <Pressable style={styles.editSaveBtn} onPress={saveUsername} disabled={savingUsername}>
+              <Text style={styles.editSaveBtnText}>{savingUsername ? "…" : "Save"}</Text>
+            </Pressable>
           </View>
         ) : (
-          <View style={styles.headerInfo}>
-            {editingUsername ? (
-              <View style={styles.cityEditRow}>
-                <TextInput
-                  style={[styles.cityInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
-                  value={usernameDraft}
-                  onChangeText={setUsernameDraft}
-                  placeholder="Username"
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                  autoFocus
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="done"
-                  onSubmitEditing={saveUsername}
-                />
-                <Pressable style={styles.citySaveBtn} onPress={saveUsername} disabled={savingUsername}>
-                  <Text style={styles.citySaveBtnText}>{savingUsername ? "…" : "Save"}</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable onPress={startEditUsername}>
-                <Text style={styles.displayName}>{displayName || "Set username"}</Text>
-              </Pressable>
-            )}
-
-            {editingCity ? (
-              <View style={[styles.cityEditRow, { marginTop: 6 }]}>
-                <TextInput
-                  style={[styles.cityInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
-                  value={cityDraft}
-                  onChangeText={setCityDraft}
-                  placeholder="Your city"
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={saveCity}
-                />
-                <Pressable style={styles.citySaveBtn} onPress={saveCity} disabled={savingCity}>
-                  <Text style={styles.citySaveBtnText}>{savingCity ? "…" : "Save"}</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable style={styles.cityRow} onPress={startEditCity}>
-                <MapPin size={12} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.cityText}>{city ?? "Add location"}</Text>
-              </Pressable>
-            )}
-
-            {memberSince ? (
-              <Text style={styles.memberSince}>Member since {memberSince}</Text>
-            ) : null}
-
-            {/* Follow counts */}
-            <View style={styles.followCountsRow}>
-              <View style={styles.followCountItem}>
-                <Text style={styles.followCountNumber}>{followCounts.followers}</Text>
-                <Text style={styles.followCountLabel}>Followers</Text>
-              </View>
-              <View style={styles.followCountDivider} />
-              <View style={styles.followCountItem}>
-                <Text style={styles.followCountNumber}>{followCounts.following}</Text>
-                <Text style={styles.followCountLabel}>Following</Text>
-              </View>
-            </View>
-          </View>
+          <Pressable onPress={() => { setUsernameDraft(user?.user_metadata?.username ?? ""); setEditingUsername(true); }}>
+            <Text style={styles.displayName}>{displayName || "Tap to set username"}</Text>
+          </Pressable>
         )}
+
+        {/* City */}
+        {editingCity ? (
+          <View style={[styles.editRow, { marginTop: 6 }]}>
+            <TextInput
+              style={[styles.editInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+              value={cityDraft}
+              onChangeText={setCityDraft}
+              placeholder="Your city"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={saveCity}
+            />
+            <Pressable style={styles.editSaveBtn} onPress={saveCity} disabled={savingCity}>
+              <Text style={styles.editSaveBtnText}>{savingCity ? "…" : "Save"}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.cityRow}
+            onPress={() => { setCityDraft(user?.user_metadata?.city ?? ""); setEditingCity(true); }}
+          >
+            <MapPin size={13} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.cityText}>{city ?? "Add location"}</Text>
+          </Pressable>
+        )}
+
+        {/* Stats pills */}
+        <View style={styles.countsRow}>
+          <View style={styles.statPill}>
+            <Text style={styles.statNumber}>{followCounts.followers}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Text style={styles.statNumber}>{followCounts.following}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Text style={styles.statNumber}>{catsLoading ? "—" : myCats.length}</Text>
+            <Text style={styles.statLabel}>Cats</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Text style={styles.statNumber}>{totalCheckins ?? "—"}</Text>
+            <Text style={styles.statLabel}>Comments</Text>
+          </View>
+        </View>
       </View>
 
-      {/* ── Stats ── */}
-      <View style={{ paddingHorizontal: 16, marginTop: 24, gap: 12 }}>
-
-        {/* Your activity */}
-        <Text style={[styles.sectionLabel, { color: textMuted }]}>Your activity</Text>
-        <View style={[styles.statCard, { backgroundColor: card }]}>
-          <StatRow
-            icon={<PawPrint size={16} color={textMuted} />}
-            label="Cats logged"
-            value={statsLoading ? null : String(stats?.myCats ?? 0)}
-            textPrimary={textPrimary}
-            textMuted={textMuted}
-            onPress={() => router.push("/my-logged-cats")}
-            accent={accent}
-          />
-          <View style={[styles.statDivider, { backgroundColor: divider }]} />
-          <StatRow
-            icon={<Cat size={16} color={textMuted} />}
-            label="Check-ins"
-            value={statsLoading ? null : String(stats?.myCheckins ?? 0)}
-            textPrimary={textPrimary}
-            textMuted={textMuted}
-          />
-          <View style={[styles.statDivider, { backgroundColor: divider }]} />
-          <StatRow
-            icon={<Calendar size={16} color={textMuted} />}
-            label="Last cat added"
-            value={statsLoading ? null : stats?.lastCatAdded ? timeAgo(stats.lastCatAdded.createdAt) : "—"}
-            sub={stats?.lastCatAdded?.name}
-            textPrimary={textPrimary}
-            textMuted={textMuted}
-          />
-        </View>
-
-        {/* Community */}
-        <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Community</Text>
-        <View style={[styles.statCard, { backgroundColor: card }]}>
-          <StatRow
-            icon={<Globe size={16} color={textMuted} />}
-            label="Total cats"
-            value={statsLoading ? null : String(stats?.totalCats ?? 0)}
-            textPrimary={textPrimary}
-            textMuted={textMuted}
-          />
-          <View style={[styles.statDivider, { backgroundColor: divider }]} />
-          <StatRow
-            icon={<Clock size={16} color={textMuted} />}
-            label="Last login"
-            value={user?.last_sign_in_at ? timeAgo(user.last_sign_in_at) : "—"}
-            textPrimary={textPrimary}
-            textMuted={textMuted}
-          />
-        </View>
-
-        {/* Achievements */}
-        <Text style={[styles.sectionLabel, { color: textMuted, marginTop: 8 }]}>Achievements</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.achievementsRow}
-        >
-          {ACHIEVEMENTS.map((a) => {
-            const unlocked = unlockedIds.includes(a.id);
-            return (
-              <View
-                key={a.id}
-                style={[
-                  styles.achievementBadge,
-                  { backgroundColor: card },
-                  !unlocked && styles.achievementLocked,
-                ]}
-              >
-                {unlocked ? (
+      {/* ── Achievements ── */}
+      <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
+        <Text style={[styles.sectionLabel, { color: textMuted }]}>Achievements</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.achievementsRow}
+      >
+        {ACHIEVEMENTS.map((a) => {
+          const unlocked = unlockedIds.includes(a.id);
+          return (
+            <View
+              key={a.id}
+              style={[
+                styles.achievementBadge,
+                { backgroundColor: unlocked ? (dark ? "#1a2535" : "#fff") : (dark ? "#1a2535" : "#fff") },
+                !unlocked && styles.achievementLocked,
+              ]}
+            >
+              {unlocked ? (
+                <View style={[styles.achievementIconWrap, { backgroundColor: accent + "22" }]}>
                   <Text style={styles.achievementIcon}>{a.icon}</Text>
-                ) : (
-                  <Lock size={28} color="#9ca3af" />
-                )}
-                <Text
-                  style={[styles.achievementTitle, { color: unlocked ? textPrimary : textMuted }]}
-                  numberOfLines={2}
-                >
-                  {a.title}
-                </Text>
-                <Text style={[styles.achievementDesc, { color: textMuted }]} numberOfLines={2}>
-                  {a.description}
-                </Text>
-              </View>
-            );
-          })}
-        </ScrollView>
+                </View>
+              ) : (
+                <View style={[styles.achievementIconWrap, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+                  <Lock size={22} color="#9ca3af" />
+                </View>
+              )}
+              <Text
+                style={[styles.achievementTitle, { color: unlocked ? textPrimary : textMuted }]}
+                numberOfLines={2}
+              >
+                {a.title}
+              </Text>
+              <Text style={[styles.achievementDesc, { color: textMuted }]} numberOfLines={2}>
+                {a.description}
+              </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
 
-        {/* Account actions */}
-        <View style={[styles.divider, { backgroundColor: divider, marginTop: 8 }]} />
-
-        <Pressable
-          style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]}
-          onPress={handleSignOut}
-          disabled={signingOut}
-        >
-          <Text style={styles.signOutText}>{signingOut ? "Signing out…" : "Sign out"}</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
-  );
-}
-
-function StatRow({
-  icon, label, value, sub, textPrimary, textMuted, onPress, accent,
-}: {
-  icon: React.ReactElement;
-  label: string;
-  value: string | null;
-  sub?: string;
-  textPrimary: string;
-  textMuted: string;
-  onPress?: () => void;
-  accent?: string;
-}) {
-  const content = (
-    <View style={styles.statRow}>
-      <View style={styles.statRowIcon}>{icon}</View>
-      <Text style={[styles.statRowLabel, { color: textMuted }]}>{label}</Text>
-      <View style={styles.statRowRight}>
-        {value === null ? (
-          <Skeleton style={{ height: 15, width: 60 }} />
-        ) : (
-          <Text style={[styles.statRowValue, { color: onPress ? accent ?? textPrimary : textPrimary }]}>{value}</Text>
-        )}
-        {sub ? <Text style={[styles.statRowSub, { color: textMuted }]}>{sub}</Text> : null}
+      {/* ── Cat grid header ── */}
+      <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 8 }}>
+        <Text style={[styles.sectionLabel, { color: textMuted }]}>
+          {catsLoading ? "Your cats" : `Your cats (${myCats.length})`}
+        </Text>
       </View>
     </View>
   );
-  if (onPress) return <Pressable onPress={onPress}>{content}</Pressable>;
-  return content;
+
+  return (
+    <FlatList
+      style={[styles.screen, { backgroundColor: bg }]}
+      data={catsLoading ? [] : myCats}
+      keyExtractor={(c) => c.id}
+      numColumns={2}
+      columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: 0 }}
+      ItemSeparatorComponent={() => <View style={{ height: GRID_GAP }} />}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 80, 100) }}
+      ListHeaderComponent={ListHeader}
+      ListEmptyComponent={
+        catsLoading ? (
+          <View style={{ flexDirection: "row", gap: GRID_GAP, paddingHorizontal: 0 }}>
+            {[0, 1].map((i) => (
+              <Skeleton key={i} style={{ width: cardWidth, height: cardWidth, borderRadius: 0 }} />
+            ))}
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: 24, paddingTop: 8 }}>
+            <EmptyState
+              icon={<PawPrint size={36} color={accent} />}
+              title="No cats yet"
+              body="You haven't logged any cats. Get out there and find some!"
+            />
+          </View>
+        )
+      }
+      ListFooterComponent={
+        <View style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
+          <View style={[styles.divider, { backgroundColor: divider }]} />
+          <Pressable
+            style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]}
+            onPress={handleSignOut}
+            disabled={signingOut}
+          >
+            <Text style={styles.signOutText}>{signingOut ? "Signing out…" : "Sign out"}</Text>
+          </Pressable>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <Pressable
+          style={{ width: cardWidth, height: cardWidth }}
+          onPress={() => router.push(`/cats/${item.id}`)}
+        >
+          {item.image ? (
+            <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth }} />
+          ) : (
+            <View style={[styles.gridPlaceholder, { width: cardWidth, height: cardWidth, backgroundColor: accent + "55" }]}>
+              <PawPrint size={40} color="rgba(255,255,255,0.45)" />
+            </View>
+          )}
+          <View style={styles.gridScrim} />
+          <View style={styles.gridOverlay}>
+            <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
+            {item.type ? <Text style={styles.gridMeta} numberOfLines={1}>{item.type}</Text> : null}
+          </View>
+        </Pressable>
+      )}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   header: {
-    flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    gap: 16,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: "hidden",
   },
 
-  avatarWrap: { position: "relative", flexShrink: 0 },
-  avatar: { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)" },
-  avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
-  initials: { color: "#fff", fontSize: 28, fontWeight: "700" },
+  pawTL: { position: "absolute", top: 8, left: -18 },
+  pawTR: { position: "absolute", top: 52, right: -10 },
+  pawBR: { position: "absolute", bottom: -24, right: 16 },
+
+  avatarWrap: { position: "relative", marginBottom: 12 },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 4,
+    borderColor: "rgba(255,255,255,0.5)",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  avatarPlaceholder: {},
+  initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
   avatarEditBadge: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: "transparent",
   },
-  avatarEditIcon: {},
 
-  headerInfo: { flex: 1 },
-
-  displayName: { color: "#fff", fontSize: 18, fontWeight: "800" },
-
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5 },
   cityText: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
-  cityEditRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  cityInput: {
-    flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
-    fontSize: 13,
-  },
-  citySaveBtn: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
+
+  editRow: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%" },
+  editInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
     paddingVertical: 7,
+    fontSize: 14,
+    color: "#fff",
+  },
+  editSaveBtn: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
   },
-  citySaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  editSaveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 
-  memberSince: { color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: 4 },
-
-  followCountsRow: { flexDirection: "row", alignItems: "center", marginTop: 10, gap: 0 },
-  followCountItem: { alignItems: "center", paddingRight: 16 },
-  followCountNumber: { color: "#fff", fontSize: 16, fontWeight: "800" },
-  followCountLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 1 },
-  followCountDivider: { width: 1, height: 24, backgroundColor: "rgba(255,255,255,0.3)", marginRight: 16 },
-
-  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-
-  statCard: {
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  statDivider: { height: StyleSheet.hairlineWidth },
-  statRow: {
-    flexDirection: "row",
+  countsRow: { flexDirection: "row", gap: 8, marginTop: 16, flexWrap: "wrap", justifyContent: "center" },
+  statPill: {
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 10,
-    minHeight: 56,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    minWidth: 68,
   },
-  statRowIcon: { width: 26, alignItems: "center" },
-  statRowLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
-  statRowRight: { alignItems: "flex-end" },
-  statRowValue: { fontSize: 14, fontWeight: "700" },
-  statRowSub: { fontSize: 11, marginTop: 1 },
+  statNumber: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  statLabel: { color: "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: "600", marginTop: 2 },
+
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
 
   achievementsRow: {
     flexDirection: "row",
     gap: 10,
+    paddingHorizontal: 16,
     paddingVertical: 2,
   },
   achievementBadge: {
     width: 110,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    elevation: 2,
   },
   achievementLocked: { opacity: 0.45 },
-  achievementIcon: { fontSize: 28, marginBottom: 4 },
-  achievementIconLocked: { opacity: 0.6 },
-  achievementTitle: { fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 2 },
+  achievementIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  achievementIcon: { fontSize: 26 },
+  achievementTitle: { fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 3 },
   achievementDesc: { fontSize: 10, textAlign: "center" },
 
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
+  gridPlaceholder: { alignItems: "center", justifyContent: "center" },
+  gridScrim: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "55%",
+    backgroundColor: "rgba(0,0,0,0.48)",
+  },
+  gridOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+  },
+  gridName: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  gridMeta: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
 
+  divider: { height: StyleSheet.hairlineWidth },
   signOutBtn: {
     padding: 14,
     borderRadius: 12,
@@ -617,5 +569,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signOutText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-
 });
