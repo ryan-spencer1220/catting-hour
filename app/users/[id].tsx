@@ -27,6 +27,8 @@ import { EmptyState } from "@/components/empty-state";
 import { ChevronLeft, MapPin, PawPrint } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const GRID_GAP = 3;
+
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -36,10 +38,10 @@ export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
 
-  const bg = dark ? "#0f1720" : "#f5f5f7";
-  const card = dark ? "#1a2535" : "#fff";
+  const bg = dark ? "#0f1720" : "#f0f0f0";
   const textPrimary = dark ? "#fff" : "#111827";
-  const textMuted = dark ? "#6b7280" : "#9ca3af";
+
+  const cardWidth = (screenWidth - GRID_GAP) / 2;
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [cats, setCats] = useState<Cat[]>([]);
@@ -101,36 +103,23 @@ export default function UserProfileScreen() {
   const displayName = profile?.username ?? "Unknown user";
   const initials = displayName.slice(0, 2).toUpperCase();
 
-  const GRID_H_PAD = 12;
-  const GRID_GAP = 8;
-  const cardWidth = (screenWidth - GRID_H_PAD * 2 - GRID_GAP) / 2;
-
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: bg }]}>
-        {/* Header band */}
-        <View style={{ paddingTop: insets.top + 8, paddingBottom: 20, paddingHorizontal: 24, backgroundColor: accent, alignItems: "center" }}>
-          <Skeleton style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 10 }} light />
-          <Skeleton style={{ height: 20, width: 130, marginBottom: 6 }} light />
-          <Skeleton style={{ height: 13, width: 80 }} light />
-          <View style={{ flexDirection: "row", marginTop: 14, gap: 8 }}>
+        <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
+          <Skeleton style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 12 }} light />
+          <Skeleton style={{ height: 22, width: 150, marginBottom: 6 }} light />
+          <Skeleton style={{ height: 13, width: 88, marginBottom: 16 }} light />
+          <View style={{ flexDirection: "row", gap: 10 }}>
             {[0, 1, 2].map((i) => (
-              <View key={i} style={{ alignItems: "center", paddingHorizontal: 14 }}>
-                <Skeleton style={{ height: 18, width: 28, marginBottom: 5 }} light />
-                <Skeleton style={{ height: 11, width: 52 }} light />
-              </View>
+              <Skeleton key={i} style={{ height: 56, width: 80, borderRadius: 14 }} light />
             ))}
           </View>
-          <Skeleton style={{ height: 36, width: 140, borderRadius: 24, marginTop: 14 }} light />
+          <Skeleton style={{ height: 38, width: 150, borderRadius: 24, marginTop: 16 }} light />
         </View>
-        {/* Grid placeholder */}
-        <View style={{ padding: 12, gap: 8 }}>
-          {[0, 1].map((row) => (
-            <View key={row} style={{ flexDirection: "row", gap: 8 }}>
-              {[0, 1].map((col) => (
-                <Skeleton key={col} style={{ flex: 1, height: cardWidth * 0.85 + 50, borderRadius: 12 }} />
-              ))}
-            </View>
+        <View style={{ flexDirection: "row", gap: GRID_GAP, marginTop: GRID_GAP }}>
+          {[0, 1].map((i) => (
+            <Skeleton key={i} style={{ width: cardWidth, height: cardWidth, borderRadius: 0 }} />
           ))}
         </View>
       </View>
@@ -154,13 +143,25 @@ export default function UserProfileScreen() {
         data={cats}
         keyExtractor={(c) => c.id}
         numColumns={2}
-        columnWrapperStyle={{ paddingHorizontal: GRID_H_PAD, gap: GRID_GAP }}
+        columnWrapperStyle={{ gap: GRID_GAP }}
         ItemSeparatorComponent={() => <View style={{ height: GRID_GAP }} />}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
-          <View>
-            {/* Header band */}
+          <View style={{ marginBottom: GRID_GAP }}>
+            {/* Header */}
             <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
+              {/* Decorative paw prints */}
+              <View pointerEvents="none" style={styles.pawDecorTL}>
+                <PawPrint size={72} color="rgba(255,255,255,0.1)" />
+              </View>
+              <View pointerEvents="none" style={styles.pawDecorTR}>
+                <PawPrint size={48} color="rgba(255,255,255,0.08)" />
+              </View>
+              <View pointerEvents="none" style={styles.pawDecorBR}>
+                <PawPrint size={90} color="rgba(255,255,255,0.06)" />
+              </View>
+
+              {/* Avatar */}
               {profile.avatarUrl ? (
                 <FadeImage uri={profile.avatarUrl} style={styles.avatar} />
               ) : (
@@ -177,19 +178,17 @@ export default function UserProfileScreen() {
                 </View>
               ) : null}
 
-              {/* Stats row */}
+              {/* Stats pills */}
               <View style={styles.countsRow}>
-                <View style={styles.countItem}>
+                <View style={styles.statPill}>
                   <Text style={styles.countNumber}>{followCounts.followers}</Text>
                   <Text style={styles.countLabel}>Followers</Text>
                 </View>
-                <View style={styles.countDivider} />
-                <View style={styles.countItem}>
+                <View style={styles.statPill}>
                   <Text style={styles.countNumber}>{followCounts.following}</Text>
                   <Text style={styles.countLabel}>Following</Text>
                 </View>
-                <View style={styles.countDivider} />
-                <View style={styles.countItem}>
+                <View style={styles.statPill}>
                   <Text style={styles.countNumber}>{cats.length}</Text>
                   <Text style={styles.countLabel}>Cats</Text>
                 </View>
@@ -211,41 +210,43 @@ export default function UserProfileScreen() {
                 </Pressable>
               )}
             </View>
-
-            {/* Cats section header */}
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>
-              Cats added
-            </Text>
           </View>
         }
         ListEmptyComponent={
-          <EmptyState
-            icon={<PawPrint size={36} color={accent} />}
-            title="No cats yet"
-            body={isOwnProfile ? "You haven't added any cats. Get out there!" : "This user hasn't spotted any cats yet."}
-          />
+          <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
+            <EmptyState
+              icon={<PawPrint size={36} color={accent} />}
+              title="No cats yet"
+              body={isOwnProfile ? "You haven't added any cats. Get out there!" : "This user hasn't spotted any cats yet."}
+            />
+          </View>
         }
         renderItem={({ item }) => (
           <Pressable
-            style={[styles.gridCard, { backgroundColor: card, width: cardWidth }]}
+            style={{ width: cardWidth, height: cardWidth }}
             onPress={() => router.push(`/cats/${item.id}`)}
           >
             {item.image ? (
-              <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth * 0.85, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
+              <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth }} />
             ) : (
-              <View style={[styles.gridPlaceholder, { width: cardWidth, height: cardWidth * 0.85, backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
-                <PawPrint size={28} color={dark ? "#6b7280" : "#9ca3af"} />
+              <View style={[styles.gridPlaceholder, { width: cardWidth, height: cardWidth, backgroundColor: accent + "66" }]}>
+                <PawPrint size={40} color="rgba(255,255,255,0.45)" />
               </View>
             )}
-            <View style={styles.gridInfo}>
-              <Text style={[styles.gridName, { color: textPrimary }]} numberOfLines={1}>{item.name}</Text>
-              {item.type ? (
-                <Text style={[styles.gridMeta, { color: textMuted }]} numberOfLines={1}>{item.type}</Text>
-              ) : null}
+            {/* Gradient scrim simulation */}
+            <View style={styles.gridScrim} />
+            <View style={styles.gridOverlay}>
+              <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
+              {item.type ? <Text style={styles.gridMeta} numberOfLines={1}>{item.type}</Text> : null}
             </View>
           </Pressable>
         )}
       />
+
+      {/* Back button */}
+      <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <ChevronLeft size={28} color="#fff" />
+      </Pressable>
     </View>
   );
 }
@@ -268,60 +269,75 @@ const styles = StyleSheet.create({
 
   header: {
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 28,
     paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: "hidden",
   },
-  avatar: { width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)", marginBottom: 10 },
-  avatarPlaceholder: { backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center", justifyContent: "center" },
-  initials: { color: "#fff", fontSize: 24, fontWeight: "700" },
-  displayName: { color: "#fff", fontSize: 20, fontWeight: "800", textAlign: "center" },
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+
+  pawDecorTL: { position: "absolute", top: 8, left: -16 },
+  pawDecorTR: { position: "absolute", top: 48, right: -8 },
+  pawDecorBR: { position: "absolute", bottom: -20, right: 20 },
+
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 4,
+    borderColor: "rgba(255,255,255,0.5)",
+    marginBottom: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: "rgba(0,0,0,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
+  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   city: { color: "rgba(255,255,255,0.8)", fontSize: 13 },
 
-  countsRow: { flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 },
-  countItem: { alignItems: "center", paddingHorizontal: 14 },
-  countNumber: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  countLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 },
-  countDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.3)" },
+  countsRow: { flexDirection: "row", gap: 10, marginTop: 16 },
+  statPill: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+    minWidth: 74,
+  },
+  countNumber: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  countLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "600", marginTop: 2 },
 
   followBtn: {
-    marginTop: 14,
-    paddingHorizontal: 36,
-    paddingVertical: 9,
+    marginTop: 16,
+    paddingHorizontal: 44,
+    paddingVertical: 10,
     borderRadius: 24,
     backgroundColor: "#fff",
   },
   followingBtn: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)" },
-  followBtnText: { fontWeight: "700", fontSize: 14 },
+  followBtnText: { fontWeight: "700", fontSize: 15 },
   followingBtnText: { color: "#fff" },
 
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 10,
-  },
+  gridPlaceholder: { alignItems: "center", justifyContent: "center" },
 
-  gridCard: {
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 2,
+  gridScrim: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "55%",
+    backgroundColor: "rgba(0,0,0,0.48)",
   },
-  gridPlaceholder: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  gridOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
   },
-  gridInfo: { padding: 9 },
-  gridName: { fontSize: 13, fontWeight: "700" },
-  gridMeta: { fontSize: 12, marginTop: 2 },
-
+  gridName: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  gridMeta: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
 });
