@@ -82,6 +82,7 @@ function RootLayoutInner() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="cats" options={{ headerShown: false }} />
+        <Stack.Screen name="users" options={{ headerShown: false }} />
         <Stack.Screen name="my-logged-cats" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
       </Stack>
