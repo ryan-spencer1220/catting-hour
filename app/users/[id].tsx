@@ -162,13 +162,17 @@ export default function UserProfileScreen() {
               </View>
 
               {/* Avatar */}
-              {profile.avatarUrl ? (
-                <FadeImage uri={profile.avatarUrl} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.initials}>{initials}</Text>
+              <View style={styles.avatarRing}>
+                <View style={styles.avatarClip}>
+                  {profile.avatarUrl ? (
+                    <FadeImage uri={profile.avatarUrl} style={styles.avatarInner} />
+                  ) : (
+                    <View style={[styles.avatarInner, styles.avatarPlaceholder]}>
+                      <Text style={styles.initials}>{initials}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
+              </View>
 
               <Text style={styles.displayName}>{displayName}</Text>
               {profile.city ? (
@@ -280,7 +284,7 @@ const styles = StyleSheet.create({
   pawDecorTR: { position: "absolute", top: 48, right: -8 },
   pawDecorBR: { position: "absolute", bottom: -20, right: 20 },
 
-  avatar: {
+  avatarRing: {
     width: 96,
     height: 96,
     borderRadius: 48,
@@ -288,11 +292,20 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.5)",
     marginBottom: 12,
   },
-  avatarPlaceholder: {
-    backgroundColor: "rgba(0,0,0,0.25)",
+  avatarClip: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 44,
+    overflow: "hidden",
+  },
+  avatarInner: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
+  avatarPlaceholder: {},
   initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
   displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
   cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },

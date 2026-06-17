@@ -220,20 +220,26 @@ export default function ProfileScreen() {
 
         {/* Avatar */}
         <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
-          {uploadingAvatar ? (
-            <View style={styles.avatar}>
-              <ActivityIndicator color="#fff" />
+          {/* Ring wrapper — no overflow:hidden so border stays round */}
+          <View style={styles.avatarRing}>
+            {/* Clip wrapper — overflow:hidden crops the image to a circle */}
+            <View style={styles.avatarClip}>
+              {uploadingAvatar ? (
+                <View style={styles.avatarInner}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : avatarUrl ? (
+                <FadeImage uri={avatarUrl} style={styles.avatarInner} />
+              ) : (
+                <View style={[styles.avatarInner, styles.avatarPlaceholder]}>
+                  {loading
+                    ? <ActivityIndicator color="rgba(255,255,255,0.6)" />
+                    : <Text style={styles.initials}>{initials}</Text>
+                  }
+                </View>
+              )}
             </View>
-          ) : avatarUrl ? (
-            <FadeImage uri={avatarUrl} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              {loading
-                ? <ActivityIndicator color="rgba(255,255,255,0.6)" />
-                : <Text style={styles.initials}>{initials}</Text>
-              }
-            </View>
-          )}
+          </View>
           <View style={[styles.avatarEditBadge, { borderColor: accent }]}>
             <Pencil size={11} color={accent} />
           </View>
@@ -443,13 +449,23 @@ const styles = StyleSheet.create({
   pawBR: { position: "absolute", bottom: -24, right: 16 },
 
   avatarWrap: { position: "relative", marginBottom: 12 },
-  avatar: {
+  avatarRing: {
     width: 96,
     height: 96,
     borderRadius: 48,
     borderWidth: 4,
     borderColor: "rgba(255,255,255,0.5)",
+    padding: 0,
+  },
+  avatarClip: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 44,
     overflow: "hidden",
+  },
+  avatarInner: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.25)",
