@@ -40,6 +40,7 @@ export default function UserProfileScreen() {
 
   const bg = dark ? "#0f1720" : "#f0f0f0";
   const textPrimary = dark ? "#fff" : "#111827";
+  const textMuted = dark ? "#6b7280" : "#9ca3af";
 
   const cardWidth = (screenWidth - GRID_GAP) / 2;
 
@@ -106,18 +107,16 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: bg }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
-          <Skeleton style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 12 }} light />
-          <Skeleton style={{ height: 22, width: 150, marginBottom: 6 }} light />
-          <Skeleton style={{ height: 13, width: 88, marginBottom: 16 }} light />
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} style={{ height: 56, width: 80, borderRadius: 14 }} light />
-            ))}
-          </View>
-          <Skeleton style={{ height: 38, width: 150, borderRadius: 24, marginTop: 16 }} light />
+        {/* Banner skeleton */}
+        <Skeleton style={{ width: "100%", height: 130 + insets.top + 8, borderRadius: 0 }} />
+        {/* Avatar + info skeleton */}
+        <View style={{ paddingHorizontal: 16, marginTop: -44 }}>
+          <Skeleton style={{ width: 88, height: 88, borderRadius: 44 }} />
+          <Skeleton style={{ height: 20, width: 150, marginTop: 10 }} />
+          <Skeleton style={{ height: 13, width: 90, marginTop: 6 }} />
+          <Skeleton style={{ height: 14, width: 220, marginTop: 10 }} />
         </View>
-        <View style={{ flexDirection: "row", gap: GRID_GAP, marginTop: GRID_GAP }}>
+        <View style={{ flexDirection: "row", gap: GRID_GAP, marginTop: 16 }}>
           {[0, 1].map((i) => (
             <Skeleton key={i} style={{ width: cardWidth, height: cardWidth, borderRadius: 0 }} />
           ))}
@@ -148,53 +147,30 @@ export default function UserProfileScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
           <View style={{ marginBottom: GRID_GAP }}>
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
-              {/* Decorative paw prints */}
+            {/* Banner — rectangular, no radius */}
+            <View style={[styles.banner, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
               <View pointerEvents="none" style={styles.pawDecorTL}>
-                <PawPrint size={72} color="rgba(255,255,255,0.1)" />
+                <PawPrint size={80} color="rgba(255,255,255,0.1)" />
               </View>
               <View pointerEvents="none" style={styles.pawDecorTR}>
-                <PawPrint size={48} color="rgba(255,255,255,0.08)" />
+                <PawPrint size={50} color="rgba(255,255,255,0.07)" />
               </View>
               <View pointerEvents="none" style={styles.pawDecorBR}>
-                <PawPrint size={90} color="rgba(255,255,255,0.06)" />
+                <PawPrint size={110} color="rgba(255,255,255,0.055)" />
               </View>
+            </View>
 
-              {/* Avatar */}
-              <View style={styles.avatarRing}>
+            {/* Avatar + follow button row — bleeds over banner */}
+            <View style={[styles.avatarRow, { backgroundColor: bg }]}>
+              <View style={[styles.avatarRing, { borderColor: bg }]}>
                 <View style={styles.avatarClip}>
                   {profile.avatarUrl ? (
                     <FadeImage uri={profile.avatarUrl} style={styles.avatarInner} />
                   ) : (
                     <View style={[styles.avatarInner, styles.avatarPlaceholder]}>
-                      <Text style={styles.initials}>{initials}</Text>
+                      <Text style={[styles.initials, { color: "#fff" }]}>{initials}</Text>
                     </View>
                   )}
-                </View>
-              </View>
-
-              <Text style={styles.displayName}>{displayName}</Text>
-              {profile.city ? (
-                <View style={styles.cityRow}>
-                  <MapPin size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={styles.city}>{profile.city}</Text>
-                </View>
-              ) : null}
-
-              {/* Stats pills */}
-              <View style={styles.countsRow}>
-                <View style={styles.statPill}>
-                  <Text style={styles.countNumber}>{followCounts.followers}</Text>
-                  <Text style={styles.countLabel}>Followers</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.countNumber}>{followCounts.following}</Text>
-                  <Text style={styles.countLabel}>Following</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.countNumber}>{cats.length}</Text>
-                  <Text style={styles.countLabel}>Cats</Text>
                 </View>
               </View>
 
@@ -202,17 +178,39 @@ export default function UserProfileScreen() {
                 <Pressable
                   style={[
                     styles.followBtn,
-                    following && styles.followingBtn,
+                    { borderColor: accent },
+                    following && { backgroundColor: accent },
                     followLoading && { opacity: 0.6 },
                   ]}
                   onPress={handleFollowToggle}
                   disabled={followLoading}
                 >
-                  <Text style={[styles.followBtnText, { color: accent }, following && styles.followingBtnText]}>
+                  <Text style={[styles.followBtnText, { color: accent }, following && { color: "#fff" }]}>
                     {followLoading ? "…" : following ? "Following" : "Follow"}
                   </Text>
                 </Pressable>
               )}
+            </View>
+
+            {/* Info — left-aligned under avatar */}
+            <View style={[styles.info, { backgroundColor: bg }]}>
+              <Text style={[styles.displayName, { color: textPrimary }]}>{displayName}</Text>
+              {profile.city ? (
+                <View style={styles.cityRow}>
+                  <MapPin size={12} color={textMuted} />
+                  <Text style={[styles.city, { color: textMuted }]}>{profile.city}</Text>
+                </View>
+              ) : null}
+              <View style={styles.statsRow}>
+                <Text style={[styles.statNum, { color: textPrimary }]}>{cats.length}</Text>
+                <Text style={[styles.statLbl, { color: textMuted }]}> cats</Text>
+                <Text style={[styles.statSep, { color: textMuted }]}> · </Text>
+                <Text style={[styles.statNum, { color: textPrimary }]}>{followCounts.followers}</Text>
+                <Text style={[styles.statLbl, { color: textMuted }]}> followers</Text>
+                <Text style={[styles.statSep, { color: textMuted }]}> · </Text>
+                <Text style={[styles.statNum, { color: textPrimary }]}>{followCounts.following}</Text>
+                <Text style={[styles.statLbl, { color: textMuted }]}> following</Text>
+              </View>
             </View>
           </View>
         }
@@ -271,31 +269,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  header: {
-    alignItems: "center",
-    paddingBottom: 28,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    overflow: "hidden",
+  banner: {
+    height: 130,
   },
 
-  pawDecorTL: { position: "absolute", top: 8, left: -16 },
-  pawDecorTR: { position: "absolute", top: 48, right: -8 },
-  pawDecorBR: { position: "absolute", bottom: -20, right: 20 },
+  pawDecorTL: { position: "absolute", top: 12, left: -18 },
+  pawDecorTR: { position: "absolute", top: 30, right: -10 },
+  pawDecorBR: { position: "absolute", bottom: -28, right: 16 },
 
+  // Avatar bleeds up over the banner by half its height (44px)
+  avatarRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginTop: -44,
+    paddingBottom: 10,
+  },
   avatarRing: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.5)",
-    marginBottom: 12,
+    // borderColor set inline to match bg
   },
   avatarClip: {
     width: "100%",
     height: "100%",
-    borderRadius: 44,
+    borderRadius: 40,
     overflow: "hidden",
   },
   avatarInner: {
@@ -306,33 +307,29 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
   },
   avatarPlaceholder: {},
-  initials: { color: "#fff", fontSize: 32, fontWeight: "700" },
-  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  city: { color: "rgba(255,255,255,0.8)", fontSize: 13 },
-
-  countsRow: { flexDirection: "row", gap: 10, marginTop: 16 },
-  statPill: {
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
-    minWidth: 74,
-  },
-  countNumber: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  countLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "600", marginTop: 2 },
+  initials: { fontSize: 30, fontWeight: "700" },
 
   followBtn: {
-    marginTop: 16,
-    paddingHorizontal: 44,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: "#fff",
+    paddingHorizontal: 22,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    backgroundColor: "transparent",
+    marginBottom: 6,
   },
-  followingBtn: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)" },
-  followBtnText: { fontWeight: "700", fontSize: 15 },
-  followingBtnText: { color: "#fff" },
+  followBtnText: { fontWeight: "700", fontSize: 14 },
+
+  info: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  displayName: { fontSize: 20, fontWeight: "800" },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  city: { fontSize: 13 },
+  statsRow: { flexDirection: "row", alignItems: "baseline", marginTop: 8, flexWrap: "wrap" },
+  statNum: { fontSize: 14, fontWeight: "700" },
+  statLbl: { fontSize: 14 },
+  statSep: { fontSize: 14 },
 
   gridPlaceholder: { alignItems: "center", justifyContent: "center" },
 
