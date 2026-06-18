@@ -15,6 +15,7 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -103,24 +104,21 @@ export default function UserProfileScreen() {
   const isOwnProfile = currentUserId === id;
   const displayName = profile?.username ?? "Unknown user";
   const initials = displayName.slice(0, 2).toUpperCase();
+  const HERO_HEIGHT = insets.top + 280;
+  const heroBg = cats[0]?.image ?? null;
 
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: bg }]}>
-        {/* Banner skeleton */}
-        <Skeleton style={{ width: "100%", height: 130 + insets.top + 8, borderRadius: 0 }} />
-        {/* Avatar + info skeleton */}
-        <View style={{ paddingHorizontal: 16, marginTop: -44 }}>
-          <Skeleton style={{ width: 88, height: 88, borderRadius: 44 }} />
-          <Skeleton style={{ height: 20, width: 150, marginTop: 10 }} />
-          <Skeleton style={{ height: 13, width: 90, marginTop: 6 }} />
-          <Skeleton style={{ height: 14, width: 220, marginTop: 10 }} />
-        </View>
-        <View style={{ flexDirection: "row", gap: GRID_GAP, marginTop: 16 }}>
+        <Skeleton style={{ width: "100%", height: insets.top + 280, borderRadius: 0 }} />
+        <View style={{ flexDirection: "row", gap: GRID_GAP, marginTop: GRID_GAP }}>
           {[0, 1].map((i) => (
             <Skeleton key={i} style={{ width: cardWidth, height: cardWidth, borderRadius: 0 }} />
           ))}
         </View>
+        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+          <ChevronLeft size={28} color="#fff" />
+        </Pressable>
       </View>
     );
   }
@@ -147,69 +145,80 @@ export default function UserProfileScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
           <View style={{ marginBottom: GRID_GAP }}>
-            {/* Banner — rectangular, no radius */}
-            <View style={[styles.banner, { paddingTop: insets.top + 8, backgroundColor: accent }]}>
-              <View pointerEvents="none" style={styles.pawDecorTL}>
-                <PawPrint size={80} color="rgba(255,255,255,0.1)" />
-              </View>
-              <View pointerEvents="none" style={styles.pawDecorTR}>
-                <PawPrint size={50} color="rgba(255,255,255,0.07)" />
-              </View>
-              <View pointerEvents="none" style={styles.pawDecorBR}>
-                <PawPrint size={110} color="rgba(255,255,255,0.055)" />
-              </View>
-            </View>
-
-            {/* Avatar + follow button row — bleeds over banner */}
-            <View style={[styles.avatarRow, { backgroundColor: bg }]}>
-              <View style={[styles.avatarRing, { borderColor: bg }]}>
-                <View style={styles.avatarClip}>
-                  {profile.avatarUrl ? (
-                    <FadeImage uri={profile.avatarUrl} style={styles.avatarInner} />
-                  ) : (
-                    <View style={[styles.avatarInner, styles.avatarPlaceholder]}>
-                      <Text style={[styles.initials, { color: "#fff" }]}>{initials}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {!isOwnProfile && (
-                <Pressable
-                  style={[
-                    styles.followBtn,
-                    { borderColor: accent },
-                    following && { backgroundColor: accent },
-                    followLoading && { opacity: 0.6 },
-                  ]}
-                  onPress={handleFollowToggle}
-                  disabled={followLoading}
-                >
-                  <Text style={[styles.followBtnText, { color: accent }, following && { color: "#fff" }]}>
-                    {followLoading ? "…" : following ? "Following" : "Follow"}
-                  </Text>
-                </Pressable>
+            {/* Hero */}
+            <View style={[styles.hero, { height: HERO_HEIGHT }]}>
+              {/* Background: blurred cat photo or solid accent */}
+              {heroBg ? (
+                <Image
+                  source={{ uri: heroBg }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                  blurRadius={18}
+                />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: accent }]} />
               )}
-            </View>
 
-            {/* Info — left-aligned under avatar */}
-            <View style={[styles.info, { backgroundColor: bg }]}>
-              <Text style={[styles.displayName, { color: textPrimary }]}>{displayName}</Text>
-              {profile.city ? (
-                <View style={styles.cityRow}>
-                  <MapPin size={12} color={textMuted} />
-                  <Text style={[styles.city, { color: textMuted }]}>{profile.city}</Text>
+              {/* Dark scrim */}
+              <View style={[StyleSheet.absoluteFill, styles.heroScrim]} />
+
+              {/* Centered content */}
+              <View style={[styles.heroContent, { paddingTop: insets.top + 20 }]}>
+                {/* Avatar */}
+                <View style={styles.avatarRing}>
+                  <View style={styles.avatarClip}>
+                    {profile.avatarUrl ? (
+                      <FadeImage uri={profile.avatarUrl} style={styles.avatarInner} />
+                    ) : (
+                      <View style={[styles.avatarInner, styles.avatarPlaceholder]}>
+                        <Text style={styles.initials}>{initials}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              ) : null}
-              <View style={styles.statsRow}>
-                <Text style={[styles.statNum, { color: textPrimary }]}>{cats.length}</Text>
-                <Text style={[styles.statLbl, { color: textMuted }]}> cats</Text>
-                <Text style={[styles.statSep, { color: textMuted }]}> · </Text>
-                <Text style={[styles.statNum, { color: textPrimary }]}>{followCounts.followers}</Text>
-                <Text style={[styles.statLbl, { color: textMuted }]}> followers</Text>
-                <Text style={[styles.statSep, { color: textMuted }]}> · </Text>
-                <Text style={[styles.statNum, { color: textPrimary }]}>{followCounts.following}</Text>
-                <Text style={[styles.statLbl, { color: textMuted }]}> following</Text>
+
+                <Text style={styles.displayName}>{displayName}</Text>
+
+                {profile.city ? (
+                  <View style={styles.cityRow}>
+                    <MapPin size={12} color="rgba(255,255,255,0.75)" />
+                    <Text style={styles.city}>{profile.city}</Text>
+                  </View>
+                ) : null}
+
+                {/* Stats */}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNum}>{cats.length}</Text>
+                    <Text style={styles.statLbl}>Cats</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNum}>{followCounts.followers}</Text>
+                    <Text style={styles.statLbl}>Followers</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNum}>{followCounts.following}</Text>
+                    <Text style={styles.statLbl}>Following</Text>
+                  </View>
+                </View>
+
+                {!isOwnProfile && (
+                  <Pressable
+                    style={[
+                      styles.followBtn,
+                      following && styles.followingBtn,
+                      followLoading && { opacity: 0.6 },
+                    ]}
+                    onPress={handleFollowToggle}
+                    disabled={followLoading}
+                  >
+                    <Text style={[styles.followBtnText, following && styles.followingBtnText]}>
+                      {followLoading ? "…" : following ? "Following" : "Follow"}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           </View>
@@ -269,34 +278,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  banner: {
-    height: 130,
+  hero: {
+    width: "100%",
+    overflow: "hidden",
+  },
+  heroScrim: {
+    backgroundColor: "rgba(0,0,0,0.52)",
+  },
+  heroContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    gap: 6,
   },
 
-  pawDecorTL: { position: "absolute", top: 12, left: -18 },
-  pawDecorTR: { position: "absolute", top: 30, right: -10 },
-  pawDecorBR: { position: "absolute", bottom: -28, right: 16 },
-
-  // Avatar bleeds up over the banner by half its height (44px)
-  avatarRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginTop: -44,
-    paddingBottom: 10,
-  },
   avatarRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    // borderColor set inline to match bg
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.6)",
+    marginBottom: 4,
   },
   avatarClip: {
     width: "100%",
     height: "100%",
-    borderRadius: 40,
+    borderRadius: 43,
     overflow: "hidden",
   },
   avatarInner: {
@@ -304,32 +313,36 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   avatarPlaceholder: {},
-  initials: { fontSize: 30, fontWeight: "700" },
+  initials: { color: "#fff", fontSize: 30, fontWeight: "700" },
+
+  displayName: { color: "#fff", fontSize: 22, fontWeight: "800", textAlign: "center" },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  city: { color: "rgba(255,255,255,0.75)", fontSize: 13 },
+
+  statsRow: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 0 },
+  statItem: { alignItems: "center", paddingHorizontal: 18 },
+  statNum: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  statLbl: { color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: "600", marginTop: 1 },
+  statDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.25)" },
 
   followBtn: {
-    paddingHorizontal: 22,
-    paddingVertical: 8,
-    borderRadius: 20,
+    marginTop: 6,
+    paddingHorizontal: 36,
+    paddingVertical: 9,
+    borderRadius: 24,
     borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.8)",
     backgroundColor: "transparent",
-    marginBottom: 6,
   },
-  followBtnText: { fontWeight: "700", fontSize: 14 },
-
-  info: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+  followingBtn: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.4)",
   },
-  displayName: { fontSize: 20, fontWeight: "800" },
-  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  city: { fontSize: 13 },
-  statsRow: { flexDirection: "row", alignItems: "baseline", marginTop: 8, flexWrap: "wrap" },
-  statNum: { fontSize: 14, fontWeight: "700" },
-  statLbl: { fontSize: 14 },
-  statSep: { fontSize: 14 },
+  followBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  followingBtnText: { color: "rgba(255,255,255,0.85)" },
 
   gridPlaceholder: { alignItems: "center", justifyContent: "center" },
 
