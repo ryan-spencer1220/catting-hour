@@ -74,7 +74,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 {options.tabBarIcon?.({
                   focused: isFocused,
                   color: iconColor,
-                  size: 24,
+                  size: 28,
                 })}
               </Pressable>
             );
