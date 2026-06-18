@@ -2,7 +2,6 @@ import { useAccent } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat, uploadImage } from "@/lib/cats";
 import { supabase } from "@/lib/supabase";
-import { signOut as supabaseSignOut } from "@/lib/auth";
 import { ACHIEVEMENTS, checkAndUnlockFollowerAchievements, getUnlockedAchievements } from "@/lib/achievements";
 import { fetchFollowCounts, syncProfile } from "@/lib/profiles";
 import * as ImagePicker from "expo-image-picker";
@@ -56,7 +55,6 @@ export default function ProfileScreen() {
   const [usernameDraft, setUsernameDraft] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
 
@@ -179,21 +177,6 @@ export default function ProfileScreen() {
     }
   }
 
-  function handleSignOut() {
-    Alert.alert("Sign out", "Sign out of your account?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: async () => {
-          setSigningOut(true);
-          try { await supabaseSignOut(); }
-          catch (e: any) { Alert.alert("Sign out failed", e?.message || String(e)); }
-          finally { setSigningOut(false); }
-        },
-      },
-    ]);
-  }
 
   const displayName = user?.user_metadata?.username ?? "";
   const avatarUrl = user?.user_metadata?.avatar_url ?? null;
@@ -397,18 +380,7 @@ export default function ProfileScreen() {
           </View>
         )
       }
-      ListFooterComponent={
-        <View style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
-          <View style={[styles.divider, { backgroundColor: divider }]} />
-          <Pressable
-            style={[styles.signOutBtn, signingOut && { opacity: 0.6 }]}
-            onPress={handleSignOut}
-            disabled={signingOut}
-          >
-            <Text style={styles.signOutText}>{signingOut ? "Signing out…" : "Sign out"}</Text>
-          </Pressable>
-        </View>
-      }
+      ListFooterComponent={<View style={{ height: 24 }} />}
       renderItem={({ item }) => (
         <Pressable
           style={{ width: cardWidth, height: cardWidth }}
@@ -578,11 +550,4 @@ const styles = StyleSheet.create({
   gridMeta: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
 
   divider: { height: StyleSheet.hairlineWidth },
-  signOutBtn: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#dc2626",
-    alignItems: "center",
-  },
-  signOutText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });
