@@ -1,22 +1,13 @@
-import { useAccent } from "@/context/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { FloatingTabBar } from "@/components/floating-tab-bar";
 import { Compass, List, Map, Settings, User } from "lucide-react-native";
 import { Tabs } from "expo-router";
 import React from "react";
 
 export default function TabsLayout() {
-  const colorScheme = useColorScheme();
-  const accent = useAccent();
-  const activeTint = colorScheme === "dark" ? accent : "#111827";
-  const bg = colorScheme === "dark" ? "#0b1220" : "#fff";
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: activeTint,
-        tabBarStyle: { backgroundColor: bg, borderTopColor: "#e6e6e6" },
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen
         name="map"
