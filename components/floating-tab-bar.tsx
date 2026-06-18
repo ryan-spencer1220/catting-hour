@@ -37,6 +37,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
+            if (!options.tabBarIcon) return null;
             const isFocused = state.index === index;
 
             const onPress = () => {
