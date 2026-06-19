@@ -18,5 +18,8 @@
       "distribution": "store",
       "autoIncrement": true
     }
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
 }

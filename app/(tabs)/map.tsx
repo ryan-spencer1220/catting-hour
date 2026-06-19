@@ -5,7 +5,7 @@ import { FadeImage } from "@/components/fade-image";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapIcon, PawPrint, X } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -39,6 +39,11 @@ export default function MapScreen() {
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCat, setSelectedCat] = useState<Cat | null>(null);
+
+  const cameraRef = useRef<any>(null);
+  const shapeSourceRef = useRef<any>(null);
+  // Prevents MapView.onPress from also firing when a source feature was tapped
+  const didHandleSourcePress = useRef(false);
 
   const cardY = useSharedValue(CARD_SLIDE);
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ translateY: cardY.value }] }));
@@ -76,6 +81,60 @@ export default function MapScreen() {
     }, [])
   );
 
+  // Build GeoJSON from cats — memoised so it only rebuilds when cats change
+  const geojson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: "FeatureCollection",
+    features: cats
+      .filter((c) => c.lat != null && c.lng != null)
+      .map((cat) => ({
+        type: "Feature",
+        id: cat.id,
+        geometry: { type: "Point", coordinates: [cat.lng!, cat.lat!] },
+        properties: { id: cat.id, name: cat.name },
+      })),
+  }), [cats]);
+
+  // ── Tap handlers ──────────────────────────────────────────────────────────
+
+  async function handleSourcePress(e: any) {
+    didHandleSourcePress.current = true;
+    const feature = e.features?.[0];
+    if (!feature) return;
+
+    if (feature.properties?.cluster) {
+      // Zoom to the level where this cluster breaks apart
+      try {
+        const zoom = await shapeSourceRef.current?.getClusterExpansionZoom(feature);
+        cameraRef.current?.setCamera({
+          centerCoordinate: feature.geometry.coordinates,
+          zoomLevel: zoom ?? 14,
+          animationDuration: 350,
+          animationMode: "flyTo",
+        });
+      } catch {}
+    } else {
+      const cat = cats.find((c) => c.id === feature.properties?.id);
+      if (cat) showCallout(cat);
+    }
+  }
+
+  function handleMapPress(feature: GeoJSON.Feature) {
+    // Swallow the event if a source press already handled it this frame
+    if (didHandleSourcePress.current) {
+      didHandleSourcePress.current = false;
+      return;
+    }
+    if (selectedCat) {
+      dismissCallout();
+      return;
+    }
+    if (feature.geometry?.type !== "Point") return;
+    const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+    router.push(`/cats/create?lng=${lng}&lat=${lat}`);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   if (!Mapbox) {
     return (
       <View style={[styles.fallback, dark && styles.fallbackDark]}>
@@ -93,22 +152,47 @@ export default function MapScreen() {
     );
   }
 
-  function handleMapPress(feature: GeoJSON.Feature) {
-    if (selectedCat) {
-      dismissCallout();
-      return;
-    }
-    if (feature.geometry?.type !== "Point") return;
-    const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-    router.push(`/cats/create?lng=${lng}&lat=${lat}`);
-  }
-
   const styleURL = dark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street;
-
   const cardBg = dark ? "#1a2535" : "#fff";
   const textPrimary = dark ? "#fff" : "#111827";
   const textMuted = dark ? "#9ca3af" : "#6b7280";
   const tagBg = dark ? `${accent}22` : `${accent}18`;
+
+  // Layer style expressions — cluster size steps: <10 → 22px, 10-49 → 30px, 50+ → 38px
+  const clusterCircleStyle = {
+    circleRadius: ["step", ["get", "point_count"], 22, 10, 30, 50, 38] as any,
+    circleColor: accent,
+    circleOpacity: 0.92,
+    circleStrokeWidth: 2.5,
+    circleStrokeColor: "rgba(255,255,255,0.6)",
+  };
+  const clusterCountStyle = {
+    textField: ["get", "point_count_abbreviated"] as any,
+    textSize: 13,
+    textColor: "#fff",
+    textFont: ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    textAllowOverlap: true,
+    textIgnorePlacement: true,
+  };
+  const pointCircleStyle = {
+    circleRadius: 16,
+    circleColor: dark ? `${accent}33` : "rgba(255,255,255,0.95)",
+    circleStrokeWidth: 2,
+    circleStrokeColor: selectedCat
+      ? ["case", ["==", ["get", "id"], selectedCat.id], accent, dark ? accent : "rgba(0,0,0,0.12)"] as any
+      : (dark ? accent : "rgba(0,0,0,0.12)"),
+    circleSortKey: ["case", ["==", ["get", "id"], selectedCat?.id ?? ""], 2, 1] as any,
+    circleOpacity: 1,
+  };
+  const pointIconStyle = {
+    textField: "🐾",
+    textSize: 14,
+    textAllowOverlap: true,
+    textIgnorePlacement: true,
+    textColor: selectedCat
+      ? ["case", ["==", ["get", "id"], selectedCat.id], accent, dark ? accent : "#555"] as any
+      : (dark ? accent : "#555"),
+  };
 
   return (
     <View style={styles.container}>
@@ -122,6 +206,7 @@ export default function MapScreen() {
         compassPosition={{ bottom: 120, right: 16 }}
       >
         <Mapbox.Camera
+          ref={cameraRef}
           zoomLevel={DEFAULT_ZOOM}
           centerCoordinate={center}
           animationMode="none"
@@ -129,34 +214,46 @@ export default function MapScreen() {
 
         <Mapbox.UserLocation visible androidRenderMode="compass" />
 
-        {cats
-          .filter((c) => c.lat != null && c.lng != null)
-          .map((cat) => {
-            const selected = selectedCat?.id === cat.id;
-            return (
-              <Mapbox.MarkerView
-                key={cat.id}
-                coordinate={[cat.lng!, cat.lat!]}
-                anchor={{ x: 0.5, y: 0.5 }}
-              >
-                <Pressable onPress={() => showCallout(cat)} hitSlop={8}>
-                  <View
-                    style={[
-                      styles.marker,
-                      selected && { backgroundColor: accent, borderColor: accent },
-                      selected && styles.markerSelected,
-                      dark && !selected && { backgroundColor: `${accent}33`, borderColor: accent },
-                    ]}
-                  >
-                    <PawPrint size={selected ? 20 : 18} color={selected ? "#fff" : (dark ? accent : "#555")} />
-                  </View>
-                </Pressable>
-              </Mapbox.MarkerView>
-            );
-          })}
+        <Mapbox.ShapeSource
+          ref={shapeSourceRef}
+          id="cats-source"
+          shape={geojson}
+          cluster
+          clusterRadius={48}
+          clusterMaxZoom={14}
+          onPress={handleSourcePress}
+        >
+          {/* Cluster circles */}
+          <Mapbox.CircleLayer
+            id="cluster-circle"
+            filter={["has", "point_count"]}
+            style={clusterCircleStyle}
+          />
+
+          {/* Cluster count labels */}
+          <Mapbox.SymbolLayer
+            id="cluster-count"
+            filter={["has", "point_count"]}
+            style={clusterCountStyle}
+          />
+
+          {/* Individual point circles */}
+          <Mapbox.CircleLayer
+            id="point-circle"
+            filter={["!", ["has", "point_count"]]}
+            style={pointCircleStyle}
+          />
+
+          {/* Individual point paw icons */}
+          <Mapbox.SymbolLayer
+            id="point-icon"
+            filter={["!", ["has", "point_count"]]}
+            style={pointIconStyle}
+          />
+        </Mapbox.ShapeSource>
       </Mapbox.MapView>
 
-      {/* Hint — hide when callout is open */}
+      {/* Hint */}
       {!selectedCat && (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>Tap the map to add a cat</Text>
@@ -174,11 +271,9 @@ export default function MapScreen() {
       >
         {selectedCat && (
           <>
-            {/* Drag handle */}
             <View style={styles.handle} />
 
             <View style={styles.calloutRow}>
-              {/* Thumbnail */}
               {selectedCat.image ? (
                 <FadeImage uri={selectedCat.image} style={styles.calloutThumb} />
               ) : (
@@ -187,7 +282,6 @@ export default function MapScreen() {
                 </View>
               )}
 
-              {/* Info */}
               <View style={styles.calloutInfo}>
                 <Text style={[styles.calloutName, { color: textPrimary }]} numberOfLines={1}>
                   {selectedCat.name}
@@ -208,7 +302,6 @@ export default function MapScreen() {
                 )}
               </View>
 
-              {/* Dismiss */}
               <Pressable style={styles.dismissBtn} onPress={dismissCallout} hitSlop={10}>
                 <X size={18} color={textMuted} />
               </Pressable>
@@ -247,30 +340,6 @@ const styles = StyleSheet.create({
   fallbackBody: { fontSize: 14, color: "#6b7280", textAlign: "center", lineHeight: 22, marginBottom: 16 },
   fallbackCmd: { fontSize: 13, fontFamily: "monospace", fontWeight: "600" },
 
-  marker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.08)",
-  },
-  markerSelected: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-
   hint: {
     position: "absolute",
     bottom: 24,
@@ -305,38 +374,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 14,
   },
-  calloutRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 14,
-  },
-  calloutThumb: {
-    width: 68,
-    height: 68,
-    borderRadius: 12,
-  },
-  calloutThumbPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  calloutRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  calloutThumb: { width: 68, height: 68, borderRadius: 12 },
+  calloutThumbPlaceholder: { alignItems: "center", justifyContent: "center" },
   calloutInfo: { flex: 1, gap: 5 },
   calloutName: { fontSize: 17, fontWeight: "700", letterSpacing: -0.3 },
   calloutTags: { flexDirection: "row", gap: 5, flexWrap: "wrap" },
   calloutTag: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   calloutTagText: { fontSize: 11, fontWeight: "600" },
   calloutOwner: { fontSize: 12 },
-  dismissBtn: {
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-start",
-  },
-  viewBtn: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
+  dismissBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center", alignSelf: "flex-start" },
+  viewBtn: { paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   viewBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });
