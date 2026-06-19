@@ -50,11 +50,16 @@ function RootLayoutInner() {
     const linkSub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
 
     // Restore an existing session on app launch, then hide splash
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace("/(tabs)/map");
-      else router.replace("/");
-      setAppReady(true);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (data.session) router.replace("/(tabs)/map");
+        else router.replace("/");
+      })
+      .catch(() => {
+        // Supabase unreachable or token unreadable — send to login
+        router.replace("/");
+      })
+      .finally(() => setAppReady(true));
 
     // React to sign-in / sign-out events from anywhere in the app
     const {

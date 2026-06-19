@@ -232,7 +232,12 @@ export default function CatDetail() {
   }
 
   async function handleAddCheckin() {
-    if (!newNote.trim()) return;
+    const trimmed = newNote.trim();
+    if (!trimmed) return;
+    if (trimmed.length > 500) {
+      Alert.alert("Too long", "Comments must be 500 characters or fewer.");
+      return;
+    }
     setSubmitting(true);
     try {
       const checkin = await addCheckin(id, newNote);

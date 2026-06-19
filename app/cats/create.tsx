@@ -31,8 +31,10 @@ export default function CreateCat() {
   const dark = colorScheme === "dark";
   const accent = useAccent();
 
-  const lng = parseFloat(params.lng ?? "0");
-  const lat = parseFloat(params.lat ?? "0");
+  const _lng = parseFloat(params.lng ?? "");
+  const _lat = parseFloat(params.lat ?? "");
+  const lng = Number.isFinite(_lng) && _lng >= -180 && _lng <= 180 ? _lng : 0;
+  const lat = Number.isFinite(_lat) && _lat >= -90 && _lat <= 90 ? _lat : 0;
 
   const [name, setName] = useState("");
   const [nameUnknown, setNameUnknown] = useState(false);

@@ -130,8 +130,20 @@ export async function suggestCatName(catId: string, name: string): Promise<void>
 }
 
 // Upload a local image URI to the 'cat-images' storage bucket and return a public URL.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export async function uploadImage(uri: string): Promise<string> {
   if (!uri) throw new Error("No image uri provided");
+
+  // Enforce size limit before uploading
+  try {
+    const info = await fetch(uri, { method: "HEAD" });
+    const size = Number(info.headers.get("content-length") ?? 0);
+    if (size > MAX_UPLOAD_BYTES) throw new Error("Image must be under 10 MB.");
+  } catch (e: any) {
+    if (e?.message?.includes("10 MB")) throw e;
+    // HEAD not supported on local URIs — skip, rely on Storage bucket limits
+  }
 
   const extMatch = uri.split(".").pop()?.split("?")[0]?.toLowerCase();
   const ext = extMatch && extMatch.length <= 5 ? extMatch : "jpg";

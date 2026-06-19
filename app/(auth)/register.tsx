@@ -33,8 +33,8 @@ export default function RegisterScreen() {
       Alert.alert("Validation", "Please provide email and password.");
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("Validation", "Password must be at least 6 characters.");
+    if (password.length < 8) {
+      Alert.alert("Validation", "Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
@@ -54,7 +54,12 @@ export default function RegisterScreen() {
       }
     } catch (e: any) {
       const msg = e.message || String(e);
-      Alert.alert("Registration failed", msg.includes("unique") ? "That username is already taken." : msg);
+      const friendly = msg.includes("unique") || msg.includes("duplicate")
+        ? "That username is already taken."
+        : msg.includes("email")
+        ? "An account with that email already exists."
+        : "Registration failed. Please try again.";
+      Alert.alert("Registration failed", friendly);
     } finally {
       setLoading(false);
     }
