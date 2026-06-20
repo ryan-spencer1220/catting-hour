@@ -5,6 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { disableNotifications, enableNotifications, getNotificationPreference } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { Settings as SettingsIcon } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -260,7 +261,7 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View style={{ paddingVertical: 24 }}>
-          <ThemedText style={styles.muted}>App version: 1.0.0</ThemedText>
+          <ThemedText style={styles.muted}>Version {Constants.expoConfig?.version ?? "—"}</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>
