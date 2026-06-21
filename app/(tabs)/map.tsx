@@ -162,15 +162,18 @@ export default function MapScreen() {
   const clusterCircleStyle = {
     circleRadius: ["step", ["get", "point_count"], 22, 10, 30, 50, 38] as any,
     circleColor: accent,
-    circleOpacity: 0.92,
-    circleStrokeWidth: 2.5,
-    circleStrokeColor: "rgba(255,255,255,0.6)",
+    circleOpacity: 1,
+    circleStrokeWidth: 3,
+    circleStrokeColor: "rgba(255,255,255,0.85)",
   };
   const clusterCountStyle = {
-    textField: ["get", "point_count_abbreviated"] as any,
-    textSize: 13,
+    // Full lumped count, coerced to a string so the symbol always renders
+    textField: ["to-string", ["get", "point_count"]] as any,
+    // Size scales with the circle so larger clusters stay legible
+    textSize: ["step", ["get", "point_count"], 13, 10, 15, 50, 17] as any,
     textColor: "#fff",
-    textFont: ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    // No custom textFont — fall back to the style's default glyphs so the
+    // count never silently disappears when a font isn't in the glyph set.
     textAllowOverlap: true,
     textIgnorePlacement: true,
   };
