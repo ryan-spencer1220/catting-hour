@@ -19,6 +19,9 @@
       "autoIncrement": true
     }
   },
+  "submit": {
+    "production": {}
+  },
   "cli": {
     "appVersionSource": "remote"
   }
