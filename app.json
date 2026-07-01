@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Catting Hour",
     "slug": "catting-hour",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cattinghour",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.ryanspencer.cattinghour",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We use your location to center the map. Your location is only used locally and not stored or shared.",
