@@ -1,15 +1,17 @@
 import { SelectField } from "@/components/select-field";
 import { AchievementPopup } from "@/components/achievement-popup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { createCat, uploadImage } from "@/lib/cats";
+import { createCat } from "@/lib/cats";
+import { addCatPhotos } from "@/lib/photos";
 import { generateCatName } from "@/lib/cat-names";
 import { checkAndUnlockAchievements, checkAndUnlockLocationAchievements, Achievement } from "@/lib/achievements";
 import { useAccent } from "@/context/theme";
 import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { MapPin, Plus, X } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -23,6 +25,8 @@ const CAT_TEMPERAMENTS = [
   "Friendly", "Shy", "Playful", "Affectionate", "Independent",
   "Curious", "Lazy", "Skittish", "Vocal", "Aggressive",
 ];
+
+const MAX_PHOTOS = 6;
 
 export default function CreateCat() {
   const params = useLocalSearchParams<{ lng?: string; lat?: string }>();
@@ -42,10 +46,39 @@ export default function CreateCat() {
   const [temperament, setTemperament] = useState("Friendly");
   const [indoor, setIndoor] = useState<boolean | null>(true);
   const [notes, setNotes] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageUris, setImageUris] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [pendingAchievements, setPendingAchievements] = useState<Achievement[]>([]);
   const [shownAchievement, setShownAchievement] = useState<Achievement | null>(null);
+  const [geo, setGeo] = useState<Location.LocationGeocodedAddress | null>(null);
+  const [geoLoading, setGeoLoading] = useState(true);
+
+  // Reverse-geocode the dropped pin once so we can show a human-friendly place
+  // name instead of raw coordinates (and reuse the result when we save).
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [result] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        if (mounted) setGeo(result ?? null);
+      } catch {
+        // Fall back to coordinates if geocoding is unavailable.
+      } finally {
+        if (mounted) setGeoLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [lat, lng]);
+
+  // "Neighborhood, City" when we have both; otherwise the most specific single
+  // place we can name, down to the country.
+  const locationLabel = (() => {
+    if (!geo) return null;
+    const hood = geo.district;
+    const city = geo.city ?? geo.subregion;
+    if (hood && city && hood !== city) return `${hood}, ${city}`;
+    return hood || city || geo.region || geo.country || null;
+  })();
 
   async function openCamera() {
     try {
@@ -57,7 +90,7 @@ export default function CreateCat() {
       const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
       if (!result.canceled) {
         const uri = result.assets?.[0]?.uri;
-        if (uri) setImageUri(uri);
+        if (uri) addPhotos([uri]);
       }
     } catch (err) {
       console.warn("Camera error", err);
@@ -71,17 +104,35 @@ export default function CreateCat() {
         Alert.alert("Permission required", "Photo library access is needed to add a picture.");
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 0.8 });
+      const remaining = MAX_PHOTOS - imageUris.length;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+        quality: 0.8,
+      });
       if (!result.canceled) {
-        const uri = result.assets?.[0]?.uri;
-        if (uri) setImageUri(uri);
+        const uris = (result.assets ?? []).map((a) => a.uri).filter(Boolean);
+        if (uris.length) addPhotos(uris);
       }
     } catch (err) {
       console.warn("Image pick error", err);
     }
   }
 
+  function addPhotos(uris: string[]) {
+    setImageUris((prev) => [...prev, ...uris].slice(0, MAX_PHOTOS));
+  }
+
+  function removePhoto(index: number) {
+    setImageUris((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function pickImage() {
+    if (imageUris.length >= MAX_PHOTOS) {
+      Alert.alert("Photo limit reached", `You can add up to ${MAX_PHOTOS} photos.`);
+      return;
+    }
     Alert.alert("Add photo", "Choose a source", [
       { text: "Take photo", onPress: () => setTimeout(openCamera, 300) },
       { text: "Choose from library", onPress: () => setTimeout(openLibrary, 300) },
@@ -107,20 +158,28 @@ export default function CreateCat() {
     const finalName = nameUnknown ? name || generateCatName() : name.trim();
     setSaving(true);
     try {
-      let imageUrl: string | null = null;
-      if (imageUri) {
-        imageUrl = await uploadImage(imageUri);
+      // Reuse the place we resolved on mount; only geocode again if it hasn't
+      // resolved yet (e.g. the user saved very quickly).
+      let resolved = geo;
+      if (!resolved) {
+        try {
+          [resolved] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        } catch {}
       }
+      const state: string | null = resolved?.region ?? null;
+      const country: string | null = resolved?.country ?? null;
 
-      let state: string | null = null;
-      let country: string | null = null;
-      try {
-        const [geo] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        state = geo?.region ?? null;
-        country = geo?.country ?? null;
-      } catch {}
+      const created = await createCat({ name: finalName, nameUnknown, type, temperament, indoor, notes, lat, lng, image: null, state, country });
 
-      await createCat({ name: finalName, nameUnknown, type, temperament, indoor, notes, lat, lng, image: imageUrl, state, country });
+      // Upload and attach any photos; the first becomes the primary marker
+      // image. Non-fatal — the cat is already saved if this fails.
+      if (imageUris.length > 0) {
+        try {
+          await addCatPhotos(created.id, imageUris);
+        } catch (photoErr) {
+          console.warn("Photo upload failed", photoErr);
+        }
+      }
 
       try {
         const userId = (await supabase.auth.getUser()).data?.user?.id ?? null;
@@ -171,92 +230,130 @@ export default function CreateCat() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={[styles.heading, dark && styles.headingDark]}>Add a cat</Text>
 
-        <Text style={labelStyle}>Location</Text>
-        <Text style={styles.value}>
-          {lat.toFixed(6)}, {lng.toFixed(6)}
-        </Text>
-
-        <Text style={labelStyle}>Name</Text>
-        <TextInput
-          style={[inputStyle, nameUnknown && styles.inputDisabled]}
-          value={name}
-          onChangeText={setName}
-          placeholder="Cat name"
-          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
-          editable={!nameUnknown}
-        />
-        {nameUnknown && (
-          <Text style={[styles.generatedLabel, { color: dark ? "#6b7280" : "#9ca3af" }]}>
-            Auto-generated — anyone can suggest the real name
-          </Text>
-        )}
-        <Pressable style={styles.unknownToggle} onPress={toggleNameUnknown}>
-          <View style={[styles.unknownCheckbox, nameUnknown && { backgroundColor: accent, borderColor: accent }]}>
-            {nameUnknown && <Text style={styles.unknownCheckmark}>✓</Text>}
-          </View>
-          <Text style={[styles.unknownLabel, { color: dark ? "#d1d5db" : "#374151" }]}>
-            I don&apos;t know their name
-          </Text>
-        </Pressable>
-
-        <Text style={labelStyle}>Type</Text>
-        <SelectField
-          value={type}
-          options={CAT_TYPES}
-          onChange={setType}
-          dark={dark}
-          placeholder="Select type…"
-        />
-
-        <Text style={labelStyle}>Temperament</Text>
-        <SelectField
-          value={temperament}
-          options={CAT_TEMPERAMENTS}
-          onChange={setTemperament}
-          dark={dark}
-          placeholder="Select temperament…"
-        />
-
-        <Text style={labelStyle}>Environment</Text>
-        <View style={styles.segmentRow}>
-          {([true, null, false] as const).map((val) => {
-            const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
-            const active = indoor === val;
-            return (
-              <Pressable
-                key={label}
-                style={[styles.segment, active && { backgroundColor: accent }]}
-                onPress={() => setIndoor(val)}
-              >
-                <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.section}>
+          <Text style={labelStyle}>Name</Text>
+          <TextInput
+            style={[inputStyle, nameUnknown && styles.inputDisabled]}
+            value={name}
+            onChangeText={setName}
+            placeholder="Cat name"
+            placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+            editable={!nameUnknown}
+          />
+          {nameUnknown && (
+            <Text style={[styles.generatedLabel, { color: dark ? "#6b7280" : "#9ca3af" }]}>
+              Auto-generated — anyone can suggest the real name
+            </Text>
+          )}
+          <Pressable style={styles.unknownToggle} onPress={toggleNameUnknown}>
+            <View style={[styles.unknownCheckbox, nameUnknown && { backgroundColor: accent, borderColor: accent }]}>
+              {nameUnknown && <Text style={styles.unknownCheckmark}>✓</Text>}
+            </View>
+            <Text style={[styles.unknownLabel, { color: dark ? "#d1d5db" : "#374151" }]}>
+              I don&apos;t know their name
+            </Text>
+          </Pressable>
         </View>
 
-        <Text style={labelStyle}>Photo</Text>
-        <Pressable style={[styles.photoButton, dark && styles.photoButtonDark]} onPress={pickImage}>
-          <Text style={[styles.photoButtonText, dark && styles.photoButtonTextDark]}>{imageUri ? "Change photo" : "Add photo"}</Text>
-        </Pressable>
-        {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
+        <View style={styles.fieldRow}>
+          <View style={styles.fieldCol}>
+            <Text style={labelStyle}>Type</Text>
+            <SelectField
+              value={type}
+              options={CAT_TYPES}
+              onChange={setType}
+              dark={dark}
+              placeholder="Type…"
+            />
+          </View>
+          <View style={styles.fieldCol}>
+            <Text style={labelStyle}>Temperament</Text>
+            <SelectField
+              value={temperament}
+              options={CAT_TEMPERAMENTS}
+              onChange={setTemperament}
+              dark={dark}
+              placeholder="Temperament…"
+            />
+          </View>
+        </View>
 
-        <Text style={labelStyle}>Notes</Text>
-        <TextInput
-          style={[inputStyle, styles.multiline]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Any notes"
-          placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
-          multiline
-        />
+        <View style={styles.section}>
+          <Text style={labelStyle}>Environment</Text>
+          <View style={styles.segmentRow}>
+            {([true, null, false] as const).map((val) => {
+              const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
+              const active = indoor === val;
+              return (
+                <Pressable
+                  key={label}
+                  style={[styles.segment, active && { backgroundColor: accent }]}
+                  onPress={() => setIndoor(val)}
+                >
+                  <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
-        <Pressable style={[styles.button, dark && { backgroundColor: accent }]} onPress={submit} disabled={saving}>
-          <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
-        </Pressable>
+        <View style={styles.section}>
+          <Text style={labelStyle}>Photos</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.photoStrip}
+            keyboardShouldPersistTaps="handled"
+          >
+            {imageUris.map((uri, i) => (
+              <View key={`${uri}-${i}`} style={styles.thumbWrap}>
+                <Image source={{ uri }} style={styles.thumb} />
+                <Pressable style={styles.thumbRemove} onPress={() => removePhoto(i)} hitSlop={6}>
+                  <X size={12} color="#fff" />
+                </Pressable>
+              </View>
+            ))}
+            {imageUris.length < MAX_PHOTOS && (
+              <Pressable style={[styles.addTile, dark && styles.addTileDark]} onPress={pickImage}>
+                <Plus size={22} color={dark ? "#9ca3af" : "#6b7280"} />
+              </Pressable>
+            )}
+          </ScrollView>
+        </View>
 
-        <Pressable style={[styles.cancel, dark && { borderColor: accent }]} onPress={() => router.back()}>
-          <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
-        </Pressable>
+        <View style={styles.section}>
+          <Text style={labelStyle}>Notes</Text>
+          <TextInput
+            style={[inputStyle, styles.multiline]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Any notes"
+            placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
+            multiline
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={labelStyle}>Location</Text>
+          <View style={styles.locationRow}>
+            <MapPin size={15} color={accent} />
+            <Text style={[styles.locationText, { color: dark ? "#d1d5db" : "#374151" }]} numberOfLines={1}>
+              {geoLoading
+                ? "Finding location…"
+                : locationLabel ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <Pressable style={[styles.cancel, dark && { borderColor: accent }]} onPress={() => router.back()}>
+            <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
+          </Pressable>
+
+          <Pressable style={[styles.button, dark && { backgroundColor: accent }]} onPress={submit} disabled={saving}>
+            <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
     </>
@@ -266,12 +363,16 @@ export default function CreateCat() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#fff" },
   safeDark: { backgroundColor: "#0f1720" },
-  container: { padding: 20, paddingTop: 40, flexGrow: 1, alignItems: "center" },
-  heading: { fontSize: 22, fontWeight: "700", marginBottom: 12, color: "#111827" },
+  container: { padding: 20, paddingVertical: 16, flexGrow: 1, alignItems: "center", justifyContent: "space-between" },
+  heading: { fontSize: 22, fontWeight: "700", color: "#111827" },
   headingDark: { color: "#fff" },
-  label: { marginTop: 12, marginBottom: 6, color: "#374151", fontWeight: "600", alignSelf: "flex-start" },
+  section: { width: "100%" },
+  label: { marginBottom: 5, color: "#374151", fontWeight: "600", alignSelf: "flex-start" },
   labelDark: { color: "#d1d5db" },
-  value: { color: "#6b7280", alignSelf: "flex-start" },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  locationText: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
+  fieldRow: { flexDirection: "row", width: "100%", gap: 12 },
+  fieldCol: { flex: 1 },
   input: {
     width: "100%",
     borderWidth: 1,
@@ -286,16 +387,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#1a2535",
     color: "#fff",
   },
-  multiline: { minHeight: 100, textAlignVertical: "top" },
+  multiline: { minHeight: 64, textAlignVertical: "top" },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12, width: "100%" },
-  photoButton: { backgroundColor: "#f3f4f6", padding: 10, borderRadius: 8, marginTop: 6, alignItems: "center", width: "100%" },
-  photoButtonDark: { backgroundColor: "#1a2535" },
-  photoButtonText: { color: "#111827" },
-  photoButtonTextDark: { color: "#d1d5db" },
-  preview: { width: "100%", height: 200, borderRadius: 8, marginTop: 10 },
-  button: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 8, marginTop: 20, alignItems: "center" },
+  photoStrip: { gap: 8, paddingVertical: 2 },
+  thumbWrap: { width: 72, height: 72 },
+  thumb: { width: 72, height: 72, borderRadius: 10, backgroundColor: "#e5e7eb" },
+  thumbRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addTile: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#d1d5db",
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addTileDark: { borderColor: "#374151", backgroundColor: "#1a2535" },
+  buttonRow: { flexDirection: "row", width: "100%", gap: 12 },
+  button: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 8, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "600" },
-  cancel: { width: "100%", backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827", padding: 14, borderRadius: 8, marginTop: 12, alignItems: "center" },
+  cancel: { flex: 1, backgroundColor: "transparent", borderWidth: 1, borderColor: "#111827", padding: 14, borderRadius: 8, alignItems: "center" },
   cancelText: { color: "#111827", fontWeight: "600" },
   inputDisabled: { opacity: 0.45 },
   generatedLabel: { fontSize: 12, marginTop: 4, alignSelf: "flex-start" },

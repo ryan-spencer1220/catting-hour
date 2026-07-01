@@ -1,14 +1,16 @@
 import { FloatingTabBar } from "@/components/floating-tab-bar";
+import { TabBarVisibilityProvider } from "@/context/tab-bar";
 import { Compass, List, Map, Settings, User } from "lucide-react-native";
 import { Tabs } from "expo-router";
 import React from "react";
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <FloatingTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
+    <TabBarVisibilityProvider>
+      <Tabs
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
       <Tabs.Screen
         name="map"
         options={{
@@ -49,8 +51,9 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Exclude profile from the tab bar */}
-      <Tabs.Screen name="profile" options={{ href: null }} />
-    </Tabs>
+        {/* Exclude profile from the tab bar */}
+        <Tabs.Screen name="profile" options={{ href: null }} />
+      </Tabs>
+    </TabBarVisibilityProvider>
   );
 }

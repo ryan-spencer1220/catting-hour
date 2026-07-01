@@ -1,4 +1,5 @@
 import { useAccent } from "@/context/theme";
+import { useTabBarVisibility } from "@/context/tab-bar";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
 import { FadeImage } from "@/components/fade-image";
@@ -8,6 +9,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapIcon, PawPrint, X } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -27,7 +29,10 @@ try {
 
 const DEFAULT_CENTER: [number, number] = [-122.431297, 37.773972];
 const DEFAULT_ZOOM = 12;
-const CARD_SLIDE = 280;
+const CARD_SLIDE = 480;
+// Swipe distances (px) past which the preview commits to an action on release.
+const OPEN_THRESHOLD = 40; // drag up → open full details
+const CLOSE_THRESHOLD = 70; // drag down → dismiss
 
 export default function MapScreen() {
   const colorScheme = useColorScheme();
@@ -35,6 +40,7 @@ export default function MapScreen() {
   const accent = useAccent();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { setHidden } = useTabBarVisibility();
 
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [cats, setCats] = useState<Cat[]>([]);
@@ -50,14 +56,53 @@ export default function MapScreen() {
 
   function showCallout(cat: Cat) {
     setSelectedCat(cat);
-    cardY.value = withSpring(0, { damping: 22, stiffness: 220 });
+    setHidden(true);
+    cardY.value = withSpring(0, { damping: 26, stiffness: 220 });
   }
 
   function dismissCallout() {
+    setHidden(false);
     cardY.value = withTiming(CARD_SLIDE, { duration: 240 }, (finished) => {
       if (finished) runOnJS(setSelectedCat)(null);
     });
   }
+
+  // Slide the card up and off as the detail screen pushes in, then park it
+  // below again so the next preview animates up cleanly.
+  function openDetail(id: string) {
+    setHidden(false);
+    cardY.value = withTiming(-CARD_SLIDE * 2, { duration: 220 }, (finished) => {
+      if (finished) {
+        cardY.value = CARD_SLIDE;
+        runOnJS(setSelectedCat)(null);
+      }
+    });
+    router.push(`/cats/${id}`);
+  }
+
+  // Reads the selected cat on the JS thread (kept out of the gesture worklet).
+  function openSelectedDetail() {
+    const id = selectedCat?.id;
+    if (id) openDetail(id);
+    else cardY.value = withSpring(0, { damping: 26, stiffness: 220 });
+  }
+
+  // Drag the preview: up past OPEN_THRESHOLD (or a fast upward flick) opens the
+  // full details, down past CLOSE_THRESHOLD dismisses; otherwise it springs back.
+  const panGesture = Gesture.Pan()
+    .activeOffsetY([-10, 10])
+    .onChange((e) => {
+      cardY.value = Math.max(-120, cardY.value + e.changeY);
+    })
+    .onEnd((e) => {
+      if (e.translationY < -OPEN_THRESHOLD || e.velocityY < -800) {
+        runOnJS(openSelectedDetail)();
+      } else if (e.translationY > CLOSE_THRESHOLD || e.velocityY > 800) {
+        runOnJS(dismissCallout)();
+      } else {
+        cardY.value = withSpring(0, { damping: 26, stiffness: 220 });
+      }
+    });
 
   useEffect(() => {
     (async () => {
@@ -77,8 +122,12 @@ export default function MapScreen() {
       fetchAllCats()
         .then((rows) => { if (mounted) setCats(rows); })
         .catch(() => {});
-      return () => { mounted = false; };
-    }, [])
+      return () => {
+        mounted = false;
+        // Restore the tab bar if we leave the map while a preview is open.
+        setHidden(false);
+      };
+    }, [setHidden])
   );
 
   // Build GeoJSON from cats — memoised so it only rebuilds when cats change
@@ -154,9 +203,7 @@ export default function MapScreen() {
 
   const styleURL = dark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street;
   const cardBg = dark ? "#1a2535" : "#fff";
-  const textPrimary = dark ? "#fff" : "#111827";
   const textMuted = dark ? "#9ca3af" : "#6b7280";
-  const tagBg = dark ? `${accent}22` : `${accent}18`;
 
   // Layer style expressions — cluster size steps: <10 → 22px, 10-49 → 30px, 50+ → 38px
   const clusterCircleStyle = {
@@ -188,11 +235,14 @@ export default function MapScreen() {
     circleOpacity: 1,
   };
   const pointIconStyle = {
-    textField: "🐾",
-    textSize: 14,
-    textAllowOverlap: true,
-    textIgnorePlacement: true,
-    textColor: selectedCat
+    // Emoji glyphs aren't in Mapbox's default font stack, so 🐾 as textField
+    // silently fails and leaves a bare circle. Use a rasterised SDF paw image
+    // (registered via <Mapbox.Images> below) that we can tint with iconColor.
+    iconImage: "paw",
+    iconSize: 1,
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+    iconColor: selectedCat
       ? ["case", ["==", ["get", "id"], selectedCat.id], accent, dark ? accent : "#555"] as any
       : (dark ? accent : "#555"),
   };
@@ -216,6 +266,16 @@ export default function MapScreen() {
         />
 
         <Mapbox.UserLocation visible androidRenderMode="compass" />
+
+        {/* Rasterise a paw into an SDF map icon so single points show a paw
+            (tinted via iconColor) instead of a bare circle. */}
+        <Mapbox.Images>
+          <Mapbox.Image name="paw" sdf>
+            <View style={styles.pawIcon}>
+              <PawPrint size={18} color="#000" fill="#000" strokeWidth={2} />
+            </View>
+          </Mapbox.Image>
+        </Mapbox.Images>
 
         <Mapbox.ShapeSource
           ref={shapeSourceRef}
@@ -256,14 +316,18 @@ export default function MapScreen() {
         </Mapbox.ShapeSource>
       </Mapbox.MapView>
 
-      {/* Hint */}
+      {/* Hint — sits just above the floating tab bar so it isn't obscured */}
       {!selectedCat && (
-        <View style={styles.hint} pointerEvents="none">
+        <View
+          style={[styles.hint, { bottom: Math.max(insets.bottom, 12) + 76 }]}
+          pointerEvents="none"
+        >
           <Text style={styles.hintText}>Tap the map to add a cat</Text>
         </View>
       )}
 
-      {/* Callout card */}
+      {/* Callout card — swipe up to open details, down to dismiss */}
+      <GestureDetector gesture={panGesture}>
       <Animated.View
         style={[
           styles.callout,
@@ -276,52 +340,51 @@ export default function MapScreen() {
           <>
             <View style={styles.handle} />
 
-            <View style={styles.calloutRow}>
+            {/* Large hero photo with the name + tags overlaid */}
+            <View style={styles.hero}>
               {selectedCat.image ? (
-                <FadeImage uri={selectedCat.image} style={styles.calloutThumb} />
+                <FadeImage uri={selectedCat.image} style={styles.heroImg} />
               ) : (
-                <View style={[styles.calloutThumb, styles.calloutThumbPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
-                  <PawPrint size={24} color={dark ? "#4b5563" : "#d1d5db"} />
+                <View style={[styles.heroImg, styles.heroPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+                  <PawPrint size={48} color={dark ? "#4b5563" : "#d1d5db"} />
                 </View>
               )}
 
-              <View style={styles.calloutInfo}>
-                <Text style={[styles.calloutName, { color: textPrimary }]} numberOfLines={1}>
-                  {selectedCat.name}
-                </Text>
+              <View style={styles.heroOverlay} pointerEvents="none">
+                <Text style={styles.heroName} numberOfLines={1}>{selectedCat.name}</Text>
                 {(selectedCat.type || selectedCat.temperament) && (
-                  <View style={styles.calloutTags}>
+                  <View style={styles.heroTags}>
                     {[selectedCat.type, selectedCat.temperament].filter(Boolean).map((tag) => (
-                      <View key={tag} style={[styles.calloutTag, { backgroundColor: tagBg }]}>
-                        <Text style={[styles.calloutTagText, { color: accent }]}>{tag}</Text>
+                      <View key={tag} style={styles.heroTag}>
+                        <Text style={styles.heroTagText}>{tag}</Text>
                       </View>
                     ))}
                   </View>
                 )}
-                {selectedCat.ownerName && (
-                  <Text style={[styles.calloutOwner, { color: textMuted }]} numberOfLines={1}>
-                    by {selectedCat.ownerName}
-                  </Text>
-                )}
               </View>
 
-              <Pressable style={styles.dismissBtn} onPress={dismissCallout} hitSlop={10}>
-                <X size={18} color={textMuted} />
+              <Pressable style={styles.heroDismiss} onPress={dismissCallout} hitSlop={10}>
+                <X size={18} color="#fff" />
               </Pressable>
             </View>
 
+            {selectedCat.ownerName && (
+              <Text style={[styles.calloutOwner, { color: textMuted }]} numberOfLines={1}>
+                Spotted by{" "}
+                <Text style={[styles.calloutOwnerName, { color: accent }]}>{selectedCat.ownerName}</Text>
+              </Text>
+            )}
+
             <Pressable
               style={[styles.viewBtn, { backgroundColor: accent }]}
-              onPress={() => {
-                dismissCallout();
-                setTimeout(() => router.push(`/cats/${selectedCat.id}`), 160);
-              }}
+              onPress={() => openDetail(selectedCat.id)}
             >
               <Text style={styles.viewBtnText}>View cat</Text>
             </Pressable>
           </>
         )}
       </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
@@ -345,7 +408,6 @@ const styles = StyleSheet.create({
 
   hint: {
     position: "absolute",
-    bottom: 24,
     alignSelf: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
     paddingHorizontal: 14,
@@ -353,6 +415,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   hintText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+
+  pawIcon: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
 
   callout: {
     position: "absolute",
@@ -377,16 +441,35 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 14,
   },
-  calloutRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
-  calloutThumb: { width: 68, height: 68, borderRadius: 12 },
-  calloutThumbPlaceholder: { alignItems: "center", justifyContent: "center" },
-  calloutInfo: { flex: 1, gap: 5 },
-  calloutName: { fontSize: 17, fontWeight: "700", letterSpacing: -0.3 },
-  calloutTags: { flexDirection: "row", gap: 5, flexWrap: "wrap" },
-  calloutTag: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-  calloutTagText: { fontSize: 11, fontWeight: "600" },
-  calloutOwner: { fontSize: 12 },
-  dismissBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center", alignSelf: "flex-start" },
-  viewBtn: { paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  viewBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  hero: { position: "relative", borderRadius: 18, overflow: "hidden", marginBottom: 14 },
+  heroImg: { width: "100%", height: 210 },
+  heroPlaceholder: { alignItems: "center", justifyContent: "center" },
+  heroOverlay: { position: "absolute", left: 16, right: 16, bottom: 14, gap: 8 },
+  heroName: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    textShadowColor: "rgba(0,0,0,0.45)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  heroTags: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  heroTag: { backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  heroTagText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  heroDismiss: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  calloutOwner: { fontSize: 14, fontWeight: "500", marginBottom: 12 },
+  calloutOwnerName: { fontWeight: "800" },
+  viewBtn: { paddingVertical: 15, borderRadius: 14, alignItems: "center" },
+  viewBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });
