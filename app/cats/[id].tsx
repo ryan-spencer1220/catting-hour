@@ -5,7 +5,7 @@ import { deleteCat, fetchCatById, suggestCatName } from "@/lib/cats";
 import { fetchLikes, likeCat, unlikeCat } from "@/lib/likes";
 import { addCatPhoto, deleteCatPhoto, fetchCatPhotos, type CatPhoto } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
-import { ChevronLeft, ChevronRight, Heart, PawPrint } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Heart, PawPrint, Trash2 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
@@ -49,7 +49,8 @@ export default function CatDetail() {
   const id = params.id ?? "";
   const router = useRouter();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const IMAGE_HEIGHT = Math.round(screenHeight * 0.55);
+  // Shorter hero so it can stay pinned above the tabbed content.
+  const IMAGE_HEIGHT = Math.round(screenHeight * 0.34);
   const colorScheme = useColorScheme();
   const dark = colorScheme === "dark";
   const accent = useAccent();
@@ -77,6 +78,7 @@ export default function CatDetail() {
   const lightboxScrollRef = useRef<ScrollView>(null);
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const [locationName, setLocationName] = useState<string | null>(null);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
@@ -85,6 +87,16 @@ export default function CatDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [nameSuggestion, setNameSuggestion] = useState("");
   const [submittingName, setSubmittingName] = useState(false);
+
+  // Tabbed content (Details / Comments) — tap the segmented control or swipe.
+  const [activeTab, setActiveTab] = useState(0);
+  const [pagerH, setPagerH] = useState(0);
+  const pagerRef = useRef<ScrollView>(null);
+
+  function goToTab(index: number) {
+    setActiveTab(index);
+    pagerRef.current?.scrollTo({ x: index * screenWidth, animated: true });
+  }
 
   // Load cat and current user in parallel
   useEffect(() => {
@@ -332,313 +344,379 @@ export default function CatDetail() {
     ? photos.map((p) => p.url)
     : cat.image ? [cat.image] : [];
 
+  const environment = cat.indoor === null ? "Indoor & Outdoor" : cat.indoor ? "Indoor" : "Outdoor";
+  const tabs = ["Details", `Comments${checkins.length > 0 ? ` (${checkins.length})` : ""}`];
+
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: bg }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* ── Main scroll — photos + content ── */}
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* ── Photo section ── */}
-        <View style={styles.photoSection}>
-          {photoUrls.length === 0 ? (
-            <View style={[styles.placeholder, { height: IMAGE_HEIGHT, backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
-              <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} />
-              <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
-              <Text style={[styles.placeholderSub, { color: textMuted }]}>Tap + Photo to add one</Text>
-            </View>
-          ) : photoUrls.length === 1 ? (
-            <Pressable
-              style={{ width: screenWidth, height: IMAGE_HEIGHT }}
-              onPress={() => { setLightboxIndex(0); setLightboxVisible(true); }}
-              onLongPress={() => photos[0] && handleDeletePhoto(photos[0])}
-            >
-              <FadeImage uri={photoUrls[0]} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
-            </Pressable>
-          ) : (
-            /* Masonry grid — two columns */
-            <View style={styles.masonryRow}>
-              {[0, 1].map((col) => (
-                <View key={col} style={styles.masonryCol}>
-                  {photoUrls
-                    .map((url, i) => ({ url, i }))
-                    .filter(({ i }) => i % 2 === col)
-                    .map(({ url, i }) => {
-                      const cellH = i === 0 ? screenWidth * 0.6 : screenWidth * 0.4;
-                      return (
-                        <Pressable
-                          key={i}
-                          style={{ width: "100%", height: cellH }}
-                          onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
-                          onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
-                        >
-                          <FadeImage uri={url} style={{ width: "100%", height: "100%" }} />
-                        </Pressable>
-                      );
-                    })}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Add photo button */}
-          <Pressable
-            style={[styles.addPhotoBtn, addingPhoto && { opacity: 0.6 }]}
-            onPress={handleAddPhoto}
-            disabled={addingPhoto}
+      {/* ── Pinned hero (swipe through photos) ── */}
+      <View style={{ height: IMAGE_HEIGHT }}>
+        {photoUrls.length === 0 ? (
+          <View style={[styles.placeholder, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
+            <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} />
+            <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
+            <Text style={[styles.placeholderSub, { color: textMuted }]}>Tap + Photo to add one</Text>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => setHeroIndex(Math.round(e.nativeEvent.contentOffset.x / screenWidth))}
           >
-            {addingPhoto
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.addPhotoBtnText}>+ Photo</Text>
-            }
+            {photoUrls.map((url, i) => (
+              <Pressable
+                key={i}
+                style={{ width: screenWidth, height: IMAGE_HEIGHT }}
+                onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
+                onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
+              >
+                <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Add photo button */}
+        <Pressable
+          style={[styles.addPhotoBtn, addingPhoto && { opacity: 0.6 }]}
+          onPress={handleAddPhoto}
+          disabled={addingPhoto}
+        >
+          {addingPhoto
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.addPhotoBtnText}>+ Photo</Text>
+          }
+        </Pressable>
+
+        {/* Photo dots */}
+        {photoUrls.length > 1 && (
+          <View style={styles.heroDots}>
+            {photoUrls.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.heroDot, { backgroundColor: i === heroIndex ? "#fff" : "rgba(255,255,255,0.45)" }]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* ── Pinned identity (name + like, always visible) ── */}
+      <View style={styles.identity}>
+        <View style={styles.nameRow}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
+            {cat.nameUnknown && (
+              <View style={[styles.unknownBadge, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+                <Text style={[styles.unknownBadgeText, { color: textMuted }]}>name unknown</Text>
+              </View>
+            )}
+          </View>
+          <Pressable style={styles.likeBtn} onPress={handleToggleLike} disabled={likeLoading}>
+            <Heart
+              size={30}
+              color={liked ? "#ef4444" : textMuted}
+              fill={liked ? "#ef4444" : "none"}
+            />
+            {likeCount > 0 && (
+              <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
+                {likeCount}
+              </Text>
+            )}
           </Pressable>
         </View>
-        <View style={[styles.card, { backgroundColor: bg }]}>
 
-          <View style={styles.nameRow}>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
-              {cat.nameUnknown && (
-                <View style={[styles.unknownBadge, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
-                  <Text style={[styles.unknownBadgeText, { color: textMuted }]}>name unknown</Text>
+        {cat.ownerName ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.ownerChip,
+              { backgroundColor: dark ? "#1a2535" : "#f3f4f6" },
+              pressed && cat.owner && { opacity: 0.7 },
+            ]}
+            onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
+            disabled={!cat.owner}
+          >
+            <View style={[styles.ownerAvatar, { backgroundColor: accent }]}>
+              <Text style={styles.ownerAvatarText}>{(cat.ownerName ?? "?")[0].toUpperCase()}</Text>
+            </View>
+            <View>
+              <Text style={[styles.ownerChipLabel, { color: textMuted }]}>Added by</Text>
+              <Text style={[styles.ownerChipName, { color: textPrimary }]} numberOfLines={1}>
+                {cat.ownerName}
+              </Text>
+            </View>
+            {cat.owner ? <ChevronRight size={18} color={textMuted} style={{ marginLeft: 2 }} /> : null}
+          </Pressable>
+        ) : null}
+      </View>
+
+      {/* ── Segmented tabs ── */}
+      <View style={[styles.segmented, { borderBottomColor: dividerColor }]}>
+        {tabs.map((label, i) => {
+          const active = activeTab === i;
+          return (
+            <Pressable key={i} style={styles.segment} onPress={() => goToTab(i)}>
+              <Text style={[styles.segmentText, { color: active ? textPrimary : textMuted }]}>{label}</Text>
+              <View style={[styles.segmentUnderline, { backgroundColor: active ? accent : "transparent" }]} />
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* ── Swipeable pages ── */}
+      <View style={{ flex: 1 }} onLayout={(e) => setPagerH(e.nativeEvent.layout.height)}>
+        <ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onMomentumScrollEnd={(e) => setActiveTab(Math.round(e.nativeEvent.contentOffset.x / screenWidth))}
+        >
+          {/* ── Page 1: Details ── */}
+          <View style={{ width: screenWidth, height: pagerH }}>
+            <ScrollView
+              contentContainerStyle={[styles.pageContent, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.badges}>
+                {cat.type ? (
+                  <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+                    <Text style={[styles.badgeText, { color: badgeText }]}>{cat.type}</Text>
+                  </View>
+                ) : null}
+                {cat.temperament ? (
+                  <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+                    <Text style={[styles.badgeText, { color: badgeText }]}>{cat.temperament}</Text>
+                  </View>
+                ) : null}
+                <View style={[styles.badge, { backgroundColor: dark ? "#2d1f4e" : "#ede9fe" }]}>
+                  <Text style={[styles.badgeText, { color: dark ? accent : "#6d28d9" }]}>{environment}</Text>
+                </View>
+              </View>
+
+              {cat.nameUnknown && currentUserId && (
+                <View style={[styles.nameSuggestionCard, { backgroundColor: dark ? "#1a2535" : "#f9fafb", borderColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
+                  <Text style={[styles.nameSuggestionTitle, { color: textPrimary }]}>
+                    Do you know this cat&apos;s name?
+                  </Text>
+                  <Text style={[styles.nameSuggestionSub, { color: textMuted }]}>
+                    Help the community — share the real name if you know it.
+                  </Text>
+                  <View style={styles.nameSuggestionRow}>
+                    <TextInput
+                      style={[styles.nameSuggestionInput, { backgroundColor: dark ? "#0f1720" : "#fff", borderColor: dark ? "#374151" : "#e5e7eb", color: textPrimary }]}
+                      placeholder="Their real name…"
+                      placeholderTextColor={textMuted}
+                      value={nameSuggestion}
+                      onChangeText={setNameSuggestion}
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      onSubmitEditing={handleSuggestName}
+                    />
+                    <Pressable
+                      style={[styles.nameSuggestionBtn, { backgroundColor: accent }, (!nameSuggestion.trim() || submittingName) && { opacity: 0.5 }]}
+                      onPress={handleSuggestName}
+                      disabled={!nameSuggestion.trim() || submittingName}
+                    >
+                      <Text style={styles.nameSuggestionBtnText}>{submittingName ? "…" : "Save"}</Text>
+                    </Pressable>
+                  </View>
                 </View>
               )}
-            </View>
-            <Pressable style={styles.likeBtn} onPress={handleToggleLike} disabled={likeLoading}>
-              <Heart
-                size={32}
-                color={liked ? "#ef4444" : textMuted}
-                fill={liked ? "#ef4444" : "none"}
-              />
-              {likeCount > 0 && (
-                <Text style={[styles.likeCount, { color: liked ? "#ef4444" : textMuted }]}>
-                  {likeCount}
-                </Text>
-              )}
-            </Pressable>
+
+              <View style={styles.detailList}>
+                {cat.type ? <DetailRow label="Type" value={cat.type} dark={dark} /> : null}
+                {cat.temperament ? <DetailRow label="Temperament" value={cat.temperament} dark={dark} /> : null}
+                <DetailRow label="Environment" value={environment} dark={dark} />
+                {cat.lat != null && cat.lng != null ? (
+                  <DetailRow
+                    label="Location"
+                    value={locationName ?? `${Number(cat.lat).toFixed(4)}, ${Number(cat.lng).toFixed(4)}`}
+                    dark={dark}
+                  />
+                ) : null}
+                {cat.createdAt ? (
+                  <DetailRow
+                    label="Added"
+                    value={(() => {
+                      const d = new Date(cat.createdAt);
+                      return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+                        + " at "
+                        + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                    })()}
+                    dark={dark}
+                  />
+                ) : null}
+              </View>
+
+              {/* Manage actions */}
+              <View style={styles.actions}>
+                <Pressable
+                  style={[styles.editBtn, { borderColor: dark ? accent : "#111827" }]}
+                  onPress={() => router.push(`/cats/edit/${id}`)}
+                >
+                  <Text style={[styles.editBtnText, { color: dark ? accent : "#111827" }]}>Edit</Text>
+                </Pressable>
+
+                {currentUserId && cat?.owner === currentUserId && (
+                  <Pressable
+                    style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
+                    disabled={deleting}
+                    onPress={() =>
+                      Alert.alert("Delete cat", "Are you sure? This cannot be undone.", [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Delete",
+                          style: "destructive",
+                          onPress: async () => {
+                            setDeleting(true);
+                            try {
+                              await deleteCat(id);
+                              router.back();
+                            } catch (e: any) {
+                              Alert.alert("Delete failed", e?.message || String(e));
+                            } finally {
+                              setDeleting(false);
+                            }
+                          },
+                        },
+                      ])
+                    }
+                  >
+                    <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete"}</Text>
+                  </Pressable>
+                )}
+
+                {currentUserId && cat?.owner !== currentUserId && (
+                  <Pressable
+                    style={styles.reportBtn}
+                    onPress={() =>
+                      Alert.alert("Report content", "Is something wrong with this listing?", [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Report",
+                          style: "destructive",
+                          onPress: () => {
+                            const subject = encodeURIComponent(`Report: ${cat?.name ?? "Cat"} (ID: ${id})`);
+                            const body = encodeURIComponent(`Please describe the issue:\n\n`);
+                            Linking.openURL(`mailto:ryan.spencer1220@gmail.com?subject=${subject}&body=${body}`);
+                          },
+                        },
+                      ])
+                    }
+                  >
+                    <Text style={styles.reportBtnText}>Report</Text>
+                  </Pressable>
+                )}
+              </View>
+            </ScrollView>
           </View>
 
-          {cat.ownerName ? (
-            <Pressable
-              onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
-              disabled={!cat.owner}
-            >
-              <Text style={[styles.addedBy, { color: textMuted }, cat.owner && [styles.addedByTappable, { color: accent }]]}>
-                Added by {cat.ownerName}
-              </Text>
-            </Pressable>
-          ) : null}
+          {/* ── Page 2: Comments ── */}
+          <View style={{ width: screenWidth, height: pagerH }}>
+            <View style={{ flex: 1 }}>
+              <ScrollView
+                contentContainerStyle={styles.pageContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Finder's note — the original note left by whoever added the cat */}
+                {cat.notes ? (
+                  <View style={[styles.commentRow, styles.finderNote, { backgroundColor: dark ? "#1a2535" : "#f9fafb" }]}>
+                    <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
+                      <Text style={styles.commentAvatarText}>
+                        {(cat.ownerName ?? "?")[0].toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.finderNoteHeader}>
+                        <Text style={[styles.commentAuthor, { color: textPrimary }]}>
+                          {cat.ownerName ?? "Cat finder"}
+                        </Text>
+                        <View style={[styles.finderBadge, { backgroundColor: accent }]}>
+                          <Text style={styles.finderBadgeText}>Finder</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.commentText, { color: textPrimary }]}>{cat.notes}</Text>
+                    </View>
+                  </View>
+                ) : null}
 
-          <View style={styles.badges}>
-            {cat.type ? (
-              <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-                <Text style={[styles.badgeText, { color: badgeText }]}>{cat.type}</Text>
-              </View>
-            ) : null}
-            {cat.temperament ? (
-              <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-                <Text style={[styles.badgeText, { color: badgeText }]}>{cat.temperament}</Text>
-              </View>
-            ) : null}
-            <View style={[styles.badge, { backgroundColor: dark ? "#2d1f4e" : "#ede9fe" }]}>
-              <Text style={[styles.badgeText, { color: dark ? accent : "#6d28d9" }]}>
-                {cat.indoor === null ? "Indoor & Outdoor" : cat.indoor ? "Indoor" : "Outdoor"}
-              </Text>
-            </View>
-          </View>
+                {checkinsLoading ? (
+                  <ActivityIndicator size="small" color={dark ? accent : "#111827"} style={{ marginTop: 16 }} />
+                ) : (
+                  checkins.map((c) => {
+                    const mine = !!currentUserId && c.authorId === currentUserId;
+                    return (
+                      <Pressable
+                        key={c.id}
+                        style={styles.commentRow}
+                        onLongPress={mine ? () => handleDeleteCheckin(c.id) : undefined}
+                      >
+                        <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
+                          <Text style={styles.commentAvatarText}>
+                            {(c.authorName ?? "?")[0].toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.commentText, { color: textPrimary }]}>
+                            <Text style={styles.commentAuthor}>{c.authorName ?? "Anonymous"} </Text>
+                            {c.note}
+                          </Text>
+                          <Text style={[styles.commentTime, { color: textMuted }]}>{timeAgo(c.createdAt)}</Text>
+                        </View>
+                        {mine && (
+                          <Pressable
+                            style={styles.commentDelete}
+                            onPress={() => handleDeleteCheckin(c.id)}
+                            hitSlop={8}
+                            accessibilityLabel="Delete comment"
+                          >
+                            <Trash2 size={15} color={textMuted} />
+                          </Pressable>
+                        )}
+                      </Pressable>
+                    );
+                  })
+                )}
+              </ScrollView>
 
-          {cat.nameUnknown && currentUserId && (
-            <View style={[styles.nameSuggestionCard, { backgroundColor: dark ? "#1a2535" : "#f9fafb", borderColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
-              <Text style={[styles.nameSuggestionTitle, { color: textPrimary }]}>
-                Do you know this cat&apos;s name?
-              </Text>
-              <Text style={[styles.nameSuggestionSub, { color: textMuted }]}>
-                Help the community — share the real name if you know it.
-              </Text>
-              <View style={styles.nameSuggestionRow}>
+              {/* Comment input bar — pinned to the bottom of the Comments page */}
+              <View style={[styles.commentBar, { backgroundColor: bg, borderTopColor: inputBorder, paddingBottom: Math.max(insets.bottom, 12) }]}>
                 <TextInput
-                  style={[styles.nameSuggestionInput, { backgroundColor: dark ? "#0f1720" : "#fff", borderColor: dark ? "#374151" : "#e5e7eb", color: textPrimary }]}
-                  placeholder="Their real name…"
+                  style={[styles.commentBarInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
+                  placeholder="Add a comment…"
                   placeholderTextColor={textMuted}
-                  value={nameSuggestion}
-                  onChangeText={setNameSuggestion}
-                  autoCorrect={false}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSuggestName}
+                  value={newNote}
+                  onChangeText={setNewNote}
+                  maxLength={300}
+                  returnKeyType="send"
+                  onSubmitEditing={handleAddCheckin}
+                  blurOnSubmit={false}
                 />
                 <Pressable
-                  style={[styles.nameSuggestionBtn, { backgroundColor: accent }, (!nameSuggestion.trim() || submittingName) && { opacity: 0.5 }]}
-                  onPress={handleSuggestName}
-                  disabled={!nameSuggestion.trim() || submittingName}
+                  style={[styles.commentBarPost, { backgroundColor: accent }, (!newNote.trim() || submitting) && { opacity: 0.4 }]}
+                  onPress={handleAddCheckin}
+                  disabled={!newNote.trim() || submitting}
                 >
-                  <Text style={styles.nameSuggestionBtnText}>{submittingName ? "…" : "Save"}</Text>
+                  <Text style={styles.commentBarPostText}>{submitting ? "…" : "Post"}</Text>
                 </Pressable>
               </View>
             </View>
-          )}
-
-          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
-
-          <View style={styles.detailList}>
-            {cat.type ? <DetailRow label="Type" value={cat.type} dark={dark} /> : null}
-            {cat.temperament ? <DetailRow label="Temperament" value={cat.temperament} dark={dark} /> : null}
-            <DetailRow label="Environment" value={cat.indoor === null ? "Indoor & Outdoor" : cat.indoor ? "Indoor" : "Outdoor"} dark={dark} />
-            {cat.lat != null && cat.lng != null ? (
-              <DetailRow
-                label="Location"
-                value={locationName ?? `${Number(cat.lat).toFixed(4)}, ${Number(cat.lng).toFixed(4)}`}
-                dark={dark}
-              />
-            ) : null}
-            {cat.createdAt ? (
-              <DetailRow
-                label="Added"
-                value={(() => {
-                  const d = new Date(cat.createdAt);
-                  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
-                    + " at "
-                    + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-                })()}
-                dark={dark}
-              />
-            ) : null}
           </View>
-
-          {cat.notes ? (
-            <>
-              <View style={[styles.divider, { backgroundColor: dividerColor }]} />
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Notes</Text>
-              <Text style={[styles.notesText, { color: dark ? "#d1d5db" : "#374151" }]}>{cat.notes}</Text>
-            </>
-          ) : null}
-
-          {/* ── Comments ── */}
-          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>
-            Comments{checkins.length > 0 ? ` (${checkins.length})` : ""}
-          </Text>
-
-          {checkinsLoading ? (
-            <ActivityIndicator size="small" color={dark ? accent : "#111827"} style={{ marginTop: 16 }} />
-          ) : checkins.length === 0 ? (
-            <Text style={[styles.emptyCheckins, { color: textMuted }]}>No comments yet — be the first!</Text>
-          ) : (
-            checkins.map((c) => (
-              <Pressable
-                key={c.id}
-                style={styles.commentRow}
-                onLongPress={() => handleDeleteCheckin(c.id)}
-              >
-                <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
-                  <Text style={styles.commentAvatarText}>
-                    {(c.authorName ?? "?")[0].toUpperCase()}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.commentText, { color: textPrimary }]}>
-                    <Text style={styles.commentAuthor}>{c.authorName ?? "Anonymous"} </Text>
-                    {c.note}
-                  </Text>
-                  <Text style={[styles.commentTime, { color: textMuted }]}>{timeAgo(c.createdAt)}</Text>
-                </View>
-              </Pressable>
-            ))
-          )}
-
-          {/* Actions */}
-          <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <Pressable
-              style={[styles.editBtn, { borderColor: dark ? accent : "#111827" }]}
-              onPress={() => router.push(`/cats/edit/${id}`)}
-            >
-              <Text style={[styles.editBtnText, { color: dark ? accent : "#111827" }]}>Edit</Text>
-            </Pressable>
-
-            {currentUserId && cat?.owner === currentUserId && (
-              <Pressable
-                style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
-                disabled={deleting}
-                onPress={() =>
-                  Alert.alert("Delete cat", "Are you sure? This cannot be undone.", [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: async () => {
-                        setDeleting(true);
-                        try {
-                          await deleteCat(id);
-                          router.back();
-                        } catch (e: any) {
-                          Alert.alert("Delete failed", e?.message || String(e));
-                        } finally {
-                          setDeleting(false);
-                        }
-                      },
-                    },
-                  ])
-                }
-              >
-                <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete"}</Text>
-              </Pressable>
-            )}
-
-            {currentUserId && cat?.owner !== currentUserId && (
-              <Pressable
-                style={styles.reportBtn}
-                onPress={() =>
-                  Alert.alert("Report content", "Is something wrong with this listing?", [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Report",
-                      style: "destructive",
-                      onPress: () => {
-                        const subject = encodeURIComponent(`Report: ${cat?.name ?? "Cat"} (ID: ${id})`);
-                        const body = encodeURIComponent(`Please describe the issue:\n\n`);
-                        Linking.openURL(`mailto:ryan.spencer1220@gmail.com?subject=${subject}&body=${body}`);
-                      },
-                    },
-                  ])
-                }
-              >
-                <Text style={styles.reportBtnText}>Report</Text>
-              </Pressable>
-            )}
-          </View>
-
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Back button — fixed over hero */}
       <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <ChevronLeft size={28} color="#fff" />
       </Pressable>
-
-      {/* ── Fixed comment input bar ── */}
-      <View style={[styles.commentBar, { backgroundColor: bg, borderTopColor: inputBorder, paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput
-          style={[styles.commentBarInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
-          placeholder="Add a comment…"
-          placeholderTextColor={textMuted}
-          value={newNote}
-          onChangeText={setNewNote}
-          maxLength={300}
-          returnKeyType="send"
-          onSubmitEditing={handleAddCheckin}
-          blurOnSubmit={false}
-        />
-        <Pressable
-          style={[styles.commentBarPost, { backgroundColor: accent }, (!newNote.trim() || submitting) && { opacity: 0.4 }]}
-          onPress={handleAddCheckin}
-          disabled={!newNote.trim() || submitting}
-        >
-          <Text style={styles.commentBarPostText}>{submitting ? "…" : "Post"}</Text>
-        </Pressable>
-      </View>
 
       {/* ── Lightbox ── */}
       <Modal
@@ -745,13 +823,20 @@ const styles = StyleSheet.create({
   placeholderLabel: { marginTop: 8, fontSize: 14, fontWeight: "600" },
   placeholderSub: { fontSize: 12, marginTop: 4 },
 
-  photoSection: { position: "relative" },
-  masonryRow: { flexDirection: "row", gap: 2 },
-  masonryCol: { flex: 1, gap: 2 },
+  heroDots: {
+    position: "absolute",
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 5,
+  },
+  heroDot: { width: 6, height: 6, borderRadius: 3 },
 
   addPhotoBtn: {
     position: "absolute",
-    bottom: 44,
+    bottom: 12,
     right: 12,
     backgroundColor: "rgba(0,0,0,0.45)",
     paddingHorizontal: 12,
@@ -778,7 +863,8 @@ const styles = StyleSheet.create({
 
   card: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, padding: 24, paddingTop: 40 },
 
-  name: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
+  identity: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8 },
+  name: { fontSize: 30, fontWeight: "800", letterSpacing: -0.5 },
   unknownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   unknownBadgeText: { fontSize: 11, fontWeight: "600" },
   nameSuggestionCard: { marginTop: 16, borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
@@ -788,24 +874,48 @@ const styles = StyleSheet.create({
   nameSuggestionInput: { flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14 },
   nameSuggestionBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   nameSuggestionBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  addedBy: { fontSize: 13, marginTop: 4, marginBottom: 2 },
-  addedByTappable: { textDecorationLine: "underline" },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  ownerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    alignSelf: "flex-start",
+    paddingLeft: 6,
+    paddingRight: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginTop: 12,
+  },
+  ownerAvatar: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  ownerAvatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  ownerChipLabel: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  ownerChipName: { fontSize: 14, fontWeight: "700" },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   badgeText: { fontSize: 13, fontWeight: "600" },
+
+  segmented: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  segment: { flex: 1, alignItems: "center", paddingTop: 12 },
+  segmentText: { fontSize: 14, fontWeight: "700" },
+  segmentUnderline: { height: 2.5, alignSelf: "stretch", marginTop: 10, borderRadius: 2 },
+
+  pageContent: { padding: 20 },
 
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 20 },
   nameRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   likeBtn: { alignItems: "center", paddingTop: 4, minWidth: 40 },
   likeCount: { fontSize: 13, fontWeight: "600", marginTop: 3 },
 
-  detailList: { gap: 16 },
+  detailList: { gap: 16, marginTop: 20 },
   detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   detailLabel: { fontSize: 14, fontWeight: "500" },
   detailValue: { fontSize: 15, fontWeight: "600", flexShrink: 1, textAlign: "right", marginLeft: 16 },
 
   sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 },
-  notesText: { fontSize: 15, lineHeight: 23 },
+
+  finderNote: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 8 },
+  finderNoteHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  finderBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  finderBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
 
   commentBar: {
     flexDirection: "row",
@@ -830,12 +940,12 @@ const styles = StyleSheet.create({
   },
   commentBarPostText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   commentRow: { flexDirection: "row", gap: 10, paddingVertical: 8, alignItems: "flex-start" },
+  commentDelete: { padding: 4, alignSelf: "flex-start" },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   commentAvatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   commentAuthor: { fontWeight: "700" },
   commentText: { fontSize: 14, lineHeight: 20 },
   commentTime: { fontSize: 11, marginTop: 3 },
-  emptyCheckins: { fontSize: 14, marginTop: 4, marginBottom: 8 },
 
   lightboxBg: { flex: 1, backgroundColor: "#000" },
   lightboxClose: {

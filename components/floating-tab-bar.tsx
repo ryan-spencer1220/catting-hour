@@ -1,9 +1,15 @@
 import { useAccent } from "@/context/theme";
+import { useTabBarVisibility } from "@/context/tab-bar";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { BlurView } from "expo-blur";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import React from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -11,11 +17,26 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const dark = colorScheme === "dark";
   const accent = useAccent();
   const insets = useSafeAreaInsets();
+  const { hidden } = useTabBarVisibility();
 
   const inactiveColor = dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)";
 
+  // Slide the bar down out of view when a screen requests it hidden (e.g. the
+  // map's cat preview), so it never obscures or intercepts taps on that UI.
+  const offset = useSharedValue(0);
+  useEffect(() => {
+    offset.value = withTiming(hidden ? 160 : 0, { duration: 220 });
+  }, [hidden, offset]);
+  const hideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: offset.value }],
+    opacity: 1 - offset.value / 160,
+  }));
+
   return (
-    <View style={[styles.wrapper, { bottom: Math.max(insets.bottom, 12) + 8 }]} pointerEvents="box-none">
+    <Animated.View
+      style={[styles.wrapper, hideStyle, { bottom: Math.max(insets.bottom, 12) + 8 }]}
+      pointerEvents={hidden ? "none" : "box-none"}
+    >
       <View style={styles.pillShadow}>
         <BlurView
           intensity={dark ? 60 : 70}
@@ -81,7 +102,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           })}
         </BlurView>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

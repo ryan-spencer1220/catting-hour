@@ -5,6 +5,7 @@ export type Checkin = {
   catId: string;
   note: string;
   createdAt: string;
+  authorId: string | null;
   authorName: string | null;
 };
 
@@ -15,6 +16,7 @@ function mapRow(row: any): Checkin | null {
     catId: String(row.cat_id),
     note: row.note,
     createdAt: row.created_at,
+    authorId: row.author ?? null,
     authorName: row.author_name ?? null,
   };
 }
@@ -53,6 +55,11 @@ export async function deleteCheckin(id: string): Promise<void> {
   const { data } = await supabase.auth.getUser();
   const userId = (data as any)?.user?.id;
   if (!userId) throw new Error("Not authenticated");
-  const { error } = await supabase.from("checkins").delete().eq("id", id).eq("author", userId);
+  const { error, count } = await supabase
+    .from("checkins")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("author", userId);
   if (error) throw error;
+  if (count === 0) throw new Error("You can only delete your own comments.");
 }
