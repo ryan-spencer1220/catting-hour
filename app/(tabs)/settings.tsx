@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { ACCENT_COLORS, useThemeContext } from "@/context/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { signOut as supabaseSignOut } from "@/lib/auth";
-import { disableNotifications, enableNotifications, getNotificationPreference } from "@/lib/notifications";
+import { disableNotifications, enableNotifications, getNotificationPreference, getNotificationSettings, updateNotificationSetting, type NotifPrefs } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -27,6 +27,7 @@ export default function SettingsScreen() {
     setPreference(enabled ? "dark" : "system");
   }
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({ nearby: true, likes: true, comments: true, follows: true });
   const [signingOut, setSigningOut] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -48,6 +49,9 @@ export default function SettingsScreen() {
 
       const pref = await getNotificationPreference();
       if (mounted) setNotificationsEnabled(pref);
+
+      const prefs = await getNotificationSettings();
+      if (mounted) setNotifPrefs(prefs);
     })();
 
     const {
@@ -73,6 +77,18 @@ export default function SettingsScreen() {
       await disableNotifications();
     }
     setNotificationsEnabled(enabled);
+  }
+
+  async function handleToggleNotifPref(key: keyof NotifPrefs, value: boolean) {
+    // Optimistic update, then persist to the profile.
+    setNotifPrefs((prev) => ({ ...prev, [key]: value }));
+    try {
+      await updateNotificationSetting(key, value);
+    } catch {
+      // Revert on failure
+      setNotifPrefs((prev) => ({ ...prev, [key]: !value }));
+      Alert.alert("Couldn’t save", "Please try again.");
+    }
   }
 
   function handleDeleteAccount() {
@@ -196,6 +212,27 @@ export default function SettingsScreen() {
             <ThemedText style={styles.rowLabel}>Enable notifications</ThemedText>
             <Switch {...switchProps} value={notificationsEnabled} onValueChange={handleToggleNotifications} />
           </View>
+
+          {notificationsEnabled && (
+            <>
+              <View style={styles.row}>
+                <ThemedText style={styles.rowLabel}>New cats near me</ThemedText>
+                <Switch {...switchProps} value={notifPrefs.nearby} onValueChange={(v) => handleToggleNotifPref("nearby", v)} />
+              </View>
+              <View style={styles.row}>
+                <ThemedText style={styles.rowLabel}>Likes on your cats</ThemedText>
+                <Switch {...switchProps} value={notifPrefs.likes} onValueChange={(v) => handleToggleNotifPref("likes", v)} />
+              </View>
+              <View style={styles.row}>
+                <ThemedText style={styles.rowLabel}>Comments on your cats</ThemedText>
+                <Switch {...switchProps} value={notifPrefs.comments} onValueChange={(v) => handleToggleNotifPref("comments", v)} />
+              </View>
+              <View style={styles.row}>
+                <ThemedText style={styles.rowLabel}>New followers</ThemedText>
+                <Switch {...switchProps} value={notifPrefs.follows} onValueChange={(v) => handleToggleNotifPref("follows", v)} />
+              </View>
+            </>
+          )}
 
         </View>
 

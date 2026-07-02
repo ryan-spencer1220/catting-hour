@@ -2,6 +2,7 @@ import { ThemeContextProvider, useThemeContext } from "@/context/theme";
 import { supabase } from "@/lib/supabase";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import * as Linking from "expo-linking";
+import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -80,6 +81,23 @@ function RootLayoutInner() {
   useEffect(() => {
     if (appReady) SplashScreen.hideAsync();
   }, [appReady]);
+
+  // Route taps on a push notification to the relevant screen.
+  useEffect(() => {
+    function handleResponse(response: Notifications.NotificationResponse | null) {
+      const data = response?.notification.request.content.data as
+        | { catId?: string; userId?: string }
+        | undefined;
+      if (!data) return;
+      if (data.catId) router.push(`/cats/${data.catId}`);
+      else if (data.userId) router.push(`/users/${data.userId}`);
+    }
+    // App opened by tapping a notification while it was killed
+    Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => {});
+    // Tapped while the app was running/backgrounded
+    const sub = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    return () => sub.remove();
+  }, [router]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
