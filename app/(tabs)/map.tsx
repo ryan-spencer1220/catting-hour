@@ -1,5 +1,6 @@
 import { useAccent } from "@/context/theme";
 import { useTabBarVisibility } from "@/context/tab-bar";
+import { updateUserLocation } from "@/lib/notifications";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fetchAllCats, type Cat } from "@/lib/cats";
 import { FadeImage } from "@/components/fade-image";
@@ -111,6 +112,8 @@ export default function MapScreen() {
         if (status === "granted") {
           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           setCenter([loc.coords.longitude, loc.coords.latitude]);
+          // Keep the profile's location current so "cat added near me" can match.
+          updateUserLocation(loc.coords.latitude, loc.coords.longitude);
         }
       } catch {}
     })();

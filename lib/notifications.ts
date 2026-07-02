@@ -57,7 +57,7 @@ export async function enableNotifications(): Promise<{ success: boolean; message
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       if (userId) {
-        await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
+        await supabase.from("user_settings").upsert({ id: userId, push_token: token });
       }
     } catch {}
   }
@@ -71,8 +71,66 @@ export async function disableNotifications(): Promise<void> {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
     if (userId) {
-      await supabase.from("profiles").update({ push_token: null }).eq("id", userId);
+      await supabase.from("user_settings").upsert({ id: userId, push_token: null });
     }
   } catch {}
   await AsyncStorage.setItem(PREF_KEY, "false");
+}
+
+// ── Per-category preferences (stored on the profile so the server-side
+// triggers can honour them when deciding whether to send) ──────────────────
+
+export type NotifPrefs = {
+  nearby: boolean;
+  likes: boolean;
+  comments: boolean;
+  follows: boolean;
+};
+
+const PREF_COLUMNS: Record<keyof NotifPrefs, string> = {
+  nearby: "notify_nearby",
+  likes: "notify_likes",
+  comments: "notify_comments",
+  follows: "notify_follows",
+};
+
+const DEFAULT_PREFS: NotifPrefs = { nearby: true, likes: true, comments: true, follows: true };
+
+export async function getNotificationSettings(): Promise<NotifPrefs> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return DEFAULT_PREFS;
+    const { data } = await supabase
+      .from("user_settings")
+      .select("notify_nearby, notify_likes, notify_comments, notify_follows")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!data) return DEFAULT_PREFS;
+    return {
+      nearby: data.notify_nearby ?? true,
+      likes: data.notify_likes ?? true,
+      comments: data.notify_comments ?? true,
+      follows: data.notify_follows ?? true,
+    };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+export async function updateNotificationSetting(key: keyof NotifPrefs, value: boolean): Promise<void> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) return;
+  await supabase.from("user_settings").upsert({ id: userId, [PREF_COLUMNS[key]]: value });
+}
+
+// Keep the profile's last-known location fresh so "cat added near me" can match.
+export async function updateUserLocation(lat: number, lng: number): Promise<void> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return;
+    await supabase.from("user_settings").upsert({ id: userId, lat, lng });
+  } catch {}
 }

@@ -213,3 +213,224 @@ ALTER TABLE public.profiles
 
 ALTER TABLE public.checkins
   ADD CONSTRAINT checkins_note_length CHECK (char_length(note) BETWEEN 1 AND 500);
+
+-- ────────────────────────────────────────────────
+-- Push notifications
+-- ────────────────────────────────────────────────
+
+-- Async HTTP from Postgres (available on Supabase). Lets triggers call the
+-- Expo push service without blocking the write that triggered them.
+create extension if not exists pg_net;
+
+-- Private per-user settings: push token, last-known location (for "cat added
+-- near me") and per-category prefs. Kept OUT of `profiles` because that table
+-- is world-readable — a push token / location must only be visible to its
+-- owner. Server-side triggers read this via SECURITY DEFINER (bypassing RLS).
+create table if not exists public.user_settings (
+  id              uuid primary key references auth.users(id) on delete cascade,
+  push_token      text,
+  lat             double precision,
+  lng             double precision,
+  notify_nearby   boolean not null default true,
+  notify_likes    boolean not null default true,
+  notify_comments boolean not null default true,
+  notify_follows  boolean not null default true,
+  updated_at      timestamptz default now()
+);
+
+alter table public.user_settings enable row level security;
+
+create policy "user_settings_select" on public.user_settings
+  for select using ( id = auth.uid() );
+create policy "user_settings_insert" on public.user_settings
+  for insert with check ( id = auth.uid() );
+create policy "user_settings_update" on public.user_settings
+  for update using ( id = auth.uid() ) with check ( id = auth.uid() );
+create policy "user_settings_delete" on public.user_settings
+  for delete using ( id = auth.uid() );
+
+-- Migrate any existing push tokens off the world-readable profiles table,
+-- then drop the old column.
+insert into public.user_settings (id, push_token)
+select id, push_token from public.profiles where push_token is not null
+on conflict (id) do update set push_token = excluded.push_token;
+
+alter table public.profiles drop column if exists push_token;
+
+-- Send a JSON array of Expo push messages. Failures never bubble up, so a push
+-- problem can't roll back the like/comment/follow/cat insert that triggered it.
+create or replace function public.send_expo_push(messages jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public, net, extensions
+as $$
+begin
+  if messages is null or jsonb_array_length(messages) = 0 then
+    return;
+  end if;
+  begin
+    perform net.http_post(
+      url := 'https://exp.host/--/api/v2/push/send',
+      headers := jsonb_build_object('Content-Type', 'application/json', 'Accept', 'application/json'),
+      body := messages
+    );
+  exception when others then
+    -- swallow: a failed notification must not block the user's action
+    null;
+  end;
+end;
+$$;
+
+-- Like on your cat → notify the finder
+create or replace function public.tg_notify_like()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid;
+  v_cat_name text;
+  v_token text;
+  v_pref boolean;
+  v_actor text;
+begin
+  select owner, name into v_owner, v_cat_name from public.cats where id = new.cat_id;
+  if v_owner is null or v_owner = new.user_id then
+    return new;
+  end if;
+  select push_token, notify_likes into v_token, v_pref from public.user_settings where id = v_owner;
+  if v_token is null or not coalesce(v_pref, true) then
+    return new;
+  end if;
+  select coalesce(username, 'Someone') into v_actor from public.profiles where id = new.user_id;
+  v_actor := coalesce(v_actor, 'Someone');
+  perform public.send_expo_push(jsonb_build_array(jsonb_build_object(
+    'to', v_token,
+    'title', 'New like 🐾',
+    'body', v_actor || ' liked ' || coalesce(v_cat_name, 'your cat'),
+    'sound', 'default',
+    'data', jsonb_build_object('type', 'like', 'catId', new.cat_id)
+  )));
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_like on public.cat_likes;
+create trigger trg_notify_like after insert on public.cat_likes
+  for each row execute function public.tg_notify_like();
+
+-- Comment on your cat → notify the finder
+create or replace function public.tg_notify_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid;
+  v_cat_name text;
+  v_token text;
+  v_pref boolean;
+begin
+  select owner, name into v_owner, v_cat_name from public.cats where id = new.cat_id;
+  if v_owner is null or v_owner = new.author then
+    return new;
+  end if;
+  select push_token, notify_comments into v_token, v_pref from public.user_settings where id = v_owner;
+  if v_token is null or not coalesce(v_pref, true) then
+    return new;
+  end if;
+  perform public.send_expo_push(jsonb_build_array(jsonb_build_object(
+    'to', v_token,
+    'title', 'New comment 🐾',
+    'body', coalesce(new.author_name, 'Someone') || ' commented on ' || coalesce(v_cat_name, 'your cat'),
+    'sound', 'default',
+    'data', jsonb_build_object('type', 'comment', 'catId', new.cat_id)
+  )));
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_comment on public.checkins;
+create trigger trg_notify_comment after insert on public.checkins
+  for each row execute function public.tg_notify_comment();
+
+-- New follower → notify the followed user
+create or replace function public.tg_notify_follow()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+  v_pref boolean;
+  v_actor text;
+begin
+  if new.following_id = new.follower_id then
+    return new;
+  end if;
+  select push_token, notify_follows into v_token, v_pref from public.user_settings where id = new.following_id;
+  if v_token is null or not coalesce(v_pref, true) then
+    return new;
+  end if;
+  select coalesce(username, 'Someone') into v_actor from public.profiles where id = new.follower_id;
+  v_actor := coalesce(v_actor, 'Someone');
+  perform public.send_expo_push(jsonb_build_array(jsonb_build_object(
+    'to', v_token,
+    'title', 'New follower',
+    'body', v_actor || ' started following you',
+    'sound', 'default',
+    'data', jsonb_build_object('type', 'follow', 'userId', new.follower_id)
+  )));
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_follow on public.follows;
+create trigger trg_notify_follow after insert on public.follows
+  for each row execute function public.tg_notify_follow();
+
+-- New cat added → notify everyone within 5 km whose last-known location is set
+create or replace function public.tg_notify_new_cat()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_msgs jsonb;
+begin
+  if new.lat is null or new.lng is null then
+    return new;
+  end if;
+  select jsonb_agg(jsonb_build_object(
+    'to', p.push_token,
+    'title', 'New cat nearby 🐾',
+    'body', coalesce(new.name, 'A cat') || ' was just spotted near you',
+    'sound', 'default',
+    'data', jsonb_build_object('type', 'nearby', 'catId', new.id)
+  ))
+  into v_msgs
+  from public.user_settings p
+  where p.push_token is not null
+    and coalesce(p.notify_nearby, true)
+    and p.id is distinct from new.owner
+    and p.lat is not null
+    and p.lng is not null
+    -- Great-circle distance (km) between the user and the new cat
+    and 6371 * acos(least(1, greatest(-1,
+          sin(radians(p.lat)) * sin(radians(new.lat)) +
+          cos(radians(p.lat)) * cos(radians(new.lat)) *
+          cos(radians(p.lng - new.lng))
+        ))) <= 5;
+  perform public.send_expo_push(v_msgs);
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_new_cat on public.cats;
+create trigger trg_notify_new_cat after insert on public.cats
+  for each row execute function public.tg_notify_new_cat();
