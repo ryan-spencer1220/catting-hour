@@ -116,7 +116,12 @@ export default function UserProfileScreen() {
             <Skeleton key={i} style={{ width: cardWidth, height: cardWidth, borderRadius: 0 }} />
           ))}
         </View>
-        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Pressable
+          style={[styles.backBtn, { top: insets.top + 12 }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={28} color="#fff" />
         </Pressable>
       </View>
@@ -126,7 +131,12 @@ export default function UserProfileScreen() {
   if (!profile) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Pressable
+          style={[styles.backBtn, { top: insets.top + 12 }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={28} color="#fff" />
         </Pressable>
         <Text style={{ color: textPrimary }}>User not found</Text>
@@ -154,6 +164,7 @@ export default function UserProfileScreen() {
                   style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                   blurRadius={18}
+                  accessible={false}
                 />
               ) : (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: accent }]} />
@@ -177,7 +188,7 @@ export default function UserProfileScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.displayName}>{displayName}</Text>
+                <Text style={styles.displayName} accessibilityRole="header">{displayName}</Text>
 
                 {profile.city ? (
                   <View style={styles.cityRow}>
@@ -188,17 +199,17 @@ export default function UserProfileScreen() {
 
                 {/* Stats */}
                 <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
+                  <View style={styles.statItem} accessible accessibilityLabel={`${cats.length} cats`}>
                     <Text style={styles.statNum}>{cats.length}</Text>
                     <Text style={styles.statLbl}>Cats</Text>
                   </View>
                   <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
+                  <View style={styles.statItem} accessible accessibilityLabel={`${followCounts.followers} followers`}>
                     <Text style={styles.statNum}>{followCounts.followers}</Text>
                     <Text style={styles.statLbl}>Followers</Text>
                   </View>
                   <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
+                  <View style={styles.statItem} accessible accessibilityLabel={`${followCounts.following} following`}>
                     <Text style={styles.statNum}>{followCounts.following}</Text>
                     <Text style={styles.statLbl}>Following</Text>
                   </View>
@@ -213,6 +224,10 @@ export default function UserProfileScreen() {
                     ]}
                     onPress={handleFollowToggle}
                     disabled={followLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel={following ? `Following ${displayName}` : `Follow ${displayName}`}
+                    accessibilityHint={following ? "Unfollows this user" : undefined}
+                    accessibilityState={{ selected: following, disabled: followLoading, busy: followLoading }}
                   >
                     <Text style={[styles.followBtnText, following && styles.followingBtnText]}>
                       {followLoading ? "…" : following ? "Following" : "Follow"}
@@ -236,6 +251,9 @@ export default function UserProfileScreen() {
           <Pressable
             style={{ width: cardWidth, height: cardWidth }}
             onPress={() => router.push(`/cats/${item.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={item.name}
+            accessibilityHint="Opens cat details"
           >
             {item.image ? (
               <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth }} />
@@ -255,7 +273,12 @@ export default function UserProfileScreen() {
       />
 
       {/* Back button */}
-      <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+      <Pressable
+          style={[styles.backBtn, { top: insets.top + 12 }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
         <ChevronLeft size={28} color="#fff" />
       </Pressable>
     </View>

@@ -228,7 +228,7 @@ export default function CreateCat() {
     <AchievementPopup achievement={shownAchievement} onDismiss={handleAchievementDismiss} />
     <SafeAreaView style={[styles.safe, dark && styles.safeDark]}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.heading, dark && styles.headingDark]}>Add a cat</Text>
+        <Text style={[styles.heading, dark && styles.headingDark]} accessibilityRole="header">Add a cat</Text>
 
         <View style={styles.section}>
           <Text style={labelStyle}>Name</Text>
@@ -237,6 +237,7 @@ export default function CreateCat() {
             value={name}
             onChangeText={setName}
             placeholder="Cat name"
+            accessibilityLabel="Name"
             placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
             editable={!nameUnknown}
           />
@@ -245,7 +246,13 @@ export default function CreateCat() {
               Auto-generated — anyone can suggest the real name
             </Text>
           )}
-          <Pressable style={styles.unknownToggle} onPress={toggleNameUnknown}>
+          <Pressable
+            style={styles.unknownToggle}
+            onPress={toggleNameUnknown}
+            accessibilityRole="checkbox"
+            accessibilityLabel="I don't know their name"
+            accessibilityState={{ checked: nameUnknown }}
+          >
             <View style={[styles.unknownCheckbox, nameUnknown && { backgroundColor: accent, borderColor: accent }]}>
               {nameUnknown && <Text style={styles.unknownCheckmark}>✓</Text>}
             </View>
@@ -264,6 +271,7 @@ export default function CreateCat() {
               onChange={setType}
               dark={dark}
               placeholder="Type…"
+              label="Type"
             />
           </View>
           <View style={styles.fieldCol}>
@@ -274,13 +282,14 @@ export default function CreateCat() {
               onChange={setTemperament}
               dark={dark}
               placeholder="Temperament…"
+              label="Temperament"
             />
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={labelStyle}>Environment</Text>
-          <View style={styles.segmentRow}>
+          <View style={styles.segmentRow} accessibilityRole="radiogroup" accessibilityLabel="Environment">
             {([true, null, false] as const).map((val) => {
               const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
               const active = indoor === val;
@@ -289,6 +298,9 @@ export default function CreateCat() {
                   key={label}
                   style={[styles.segment, active && { backgroundColor: accent }]}
                   onPress={() => setIndoor(val)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: active }}
                 >
                   <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
                 </Pressable>
@@ -307,14 +319,32 @@ export default function CreateCat() {
           >
             {imageUris.map((uri, i) => (
               <View key={`${uri}-${i}`} style={styles.thumbWrap}>
-                <Image source={{ uri }} style={styles.thumb} />
-                <Pressable style={styles.thumbRemove} onPress={() => removePhoto(i)} hitSlop={6}>
+                <Image
+                  source={{ uri }}
+                  style={styles.thumb}
+                  accessible
+                  accessibilityRole="image"
+                  accessibilityLabel={`Photo ${i + 1}`}
+                />
+                <Pressable
+                  style={styles.thumbRemove}
+                  onPress={() => removePhoto(i)}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove photo ${i + 1}`}
+                >
                   <X size={12} color="#fff" />
                 </Pressable>
               </View>
             ))}
             {imageUris.length < MAX_PHOTOS && (
-              <Pressable style={[styles.addTile, dark && styles.addTileDark]} onPress={pickImage}>
+              <Pressable
+                style={[styles.addTile, dark && styles.addTileDark]}
+                onPress={pickImage}
+                accessibilityRole="button"
+                accessibilityLabel="Add photo"
+                accessibilityHint={`You can add up to ${MAX_PHOTOS} photos`}
+              >
                 <Plus size={22} color={dark ? "#9ca3af" : "#6b7280"} />
               </Pressable>
             )}
@@ -328,6 +358,7 @@ export default function CreateCat() {
             value={notes}
             onChangeText={setNotes}
             placeholder="Any notes"
+            accessibilityLabel="Notes"
             placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
             multiline
           />
@@ -336,7 +367,7 @@ export default function CreateCat() {
         <View style={styles.section}>
           <Text style={labelStyle}>Location</Text>
           <View style={styles.locationRow}>
-            <MapPin size={15} color={accent} />
+            <MapPin size={15} color={accent} accessible={false} />
             <Text style={[styles.locationText, { color: dark ? "#d1d5db" : "#374151" }]} numberOfLines={1}>
               {geoLoading
                 ? "Finding location…"
@@ -346,11 +377,22 @@ export default function CreateCat() {
         </View>
 
         <View style={styles.buttonRow}>
-          <Pressable style={[styles.cancel, dark && { borderColor: accent }]} onPress={() => router.back()}>
+          <Pressable
+            style={[styles.cancel, dark && { borderColor: accent }]}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+          >
             <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
           </Pressable>
 
-          <Pressable style={[styles.button, dark && { backgroundColor: accent }]} onPress={submit} disabled={saving}>
+          <Pressable
+            style={[styles.button, dark && { backgroundColor: accent }]}
+            onPress={submit}
+            disabled={saving}
+            accessibilityRole="button"
+            accessibilityLabel="Save cat"
+            accessibilityState={{ disabled: saving, busy: saving }}
+          >
             <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
           </Pressable>
         </View>

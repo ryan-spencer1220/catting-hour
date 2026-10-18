@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen() {
             <ThemedText style={styles.body}>
               Check your inbox — we sent a password reset link to {email}.
             </ThemedText>
-            <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={() => router.back()}>
+            <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={() => router.back()} accessibilityRole="button">
               <ThemedText style={styles.buttonText}>Back to sign in</ThemedText>
             </TouchableOpacity>
           </>
@@ -61,6 +61,7 @@ export default function ForgotPasswordScreen() {
             <TextInput
               style={inputStyle}
               placeholder="Email"
+              accessibilityLabel="Email"
               placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
               value={email}
               onChangeText={setEmail}
@@ -74,13 +75,14 @@ export default function ForgotPasswordScreen() {
               style={[styles.button, dark && { backgroundColor: accent }, loading && { opacity: 0.6 }]}
               onPress={handleReset}
               disabled={loading}
+              accessibilityRole="button"
             >
               <ThemedText style={styles.buttonText}>
                 {loading ? "Sending…" : "Send reset link"}
               </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.linkRow} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.linkRow} onPress={() => router.back()} accessibilityRole="link">
               <ThemedText type="link">Back to sign in</ThemedText>
             </TouchableOpacity>
           </>

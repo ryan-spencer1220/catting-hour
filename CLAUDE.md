@@ -34,29 +34,46 @@ npx jest --testPathPattern=achievements  # single file
 
 ### Routing
 
-Expo Router with three route groups:
+Expo Router. The root stack (`app/_layout.tsx`) holds:
 
-- `/` (`app/index.tsx`) — auth landing page; navigates to `/(tabs)/map` (guest) or login/register
-- `/(auth)/` — `login.tsx`, `register.tsx`; no tab bar
-- `/(tabs)/` — main app: `map`, `recently`, `my-cats`, `settings`; `profile` is in this group but hidden from the tab bar (`href: null`)
-- `/cats/` — `[id].tsx` (detail), `create.tsx` (new cat), `edit/[id].tsx` (edit); accessed as a stack from both the map and my-cats tab
+- `/` (`app/index.tsx`): onboarding slides on first launch (tracked in AsyncStorage under `@onboarding_seen`), then the auth landing page
+- `/(auth)/`: `login`, `register`, `forgot-password`, `reset-password`; no tab bar
+- `/(tabs)/`: the main app, rendered with the custom `FloatingTabBar`. Visible tabs are `map`, `nearby`, `feed`, `my-cats` (titled "Profile"), and `settings`. `profile` is a redirect hidden from the tab bar (`href: null`)
+- `/cats/`: `[id]` (detail), `create` (new cat, opened from a map tap with `lng`/`lat` params), `edit/[id]`
+- `/users/[id]`: another user's profile with follow button and their cats
+- `/my-logged-cats`, `/privacy`, `/terms`
 
 ### Data layer (`lib/`)
 
-- **`lib/supabase.ts`** — single Supabase client; reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from the environment (`.env` locally, EAS secrets for builds).
-- **`lib/cats.ts`** — full CRUD against the `cats` table: `fetchAllCats`, `fetchCatById`, `createCat`, `updateCat`, `deleteCat`. `createCat` attempts to attach `auth.uid()` as owner but silently falls back to null.
-- **`lib/auth.ts`** — thin wrappers over `supabase.auth`: `signUpWithEmail`, `signInWithEmail`, `signOut`, `onAuthStateChange`.
+All cat data comes from Supabase; there is no local or bundled fallback.
 
-**Three cat data sources** — cat detail (`cats/[id].tsx`) resolves in this priority order:
-1. AsyncStorage key `"myCats"` (locally created, not yet synced)
-2. Supabase via `fetchCatById`
-3. Bundled `data/cats.json` fallback
-
-The `my-cats` and `recently` tabs fetch exclusively from Supabase (`fetchAllCats`). **Note:** `cats/create.tsx` has a stub `submit()` that only logs and navigates back — the actual `createCat` call is not yet wired up.
+- **`supabase.ts`**: single Supabase client; reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (`.env` locally, EAS secrets for builds).
+- **`cats.ts`**: CRUD on `cats` (`fetchAllCats`, `fetchFollowingCats`, `fetchCatById`, `createCat`, `updateCat`, `deleteCat`), `suggestCatName` (RPC `suggest_cat_name`), and `uploadImage` to the `cat-images` bucket (10 MB limit).
+- **`photos.ts`**: multiple photos per cat via the `cat_photos` table.
+- **`checkins.ts`**: comments/sightings on a cat (`checkins` table).
+- **`likes.ts`**: likes (`cat_likes` table).
+- **`profiles.ts`**: profiles, follow/unfollow, follower counts (`profiles`, `follows`).
+- **`achievements.ts`**: achievement definitions and unlock checks (cats added, followers, states, countries); unlocked IDs persist in AsyncStorage.
+- **`notifications.ts`**: push notification opt-in via `expo-notifications` (skipped in Expo Go).
+- **`distance.ts`**: haversine distance, unit formatting, and radius conversion for the Nearby tab.
+- **`auth.ts`**: thin wrappers over `supabase.auth`.
+- **`cat-names.ts`**: random placeholder names for cats whose real name is unknown.
 
 ### Map (`app/(tabs)/map.tsx`)
 
-Uses **`@rnmapbox/maps`** (native). The public access token (`pk.`) flows through `app.config.js` `extra.MAPBOX_ACCESS_TOKEN` → `expo-constants`. The downloads token (`sk.`) is only needed at EAS build time via the `@rnmapbox/maps` plugin. Tapping the map calls `onPress(GeoJSON.Feature)` and navigates to `/cats/create?lng=...&lat=...`. Cat markers are `Mapbox.MarkerView` components with a `Pressable` that navigates to the cat detail.
+Uses **`@rnmapbox/maps`** (native, so Expo Go shows a fallback screen). The public access token (`pk.`) flows through `app.config.js` `extra.MAPBOX_ACCESS_TOKEN` to `expo-constants`. The downloads token (`sk.`) is only needed at build time via the `@rnmapbox/maps` plugin. Cats render as a clustered `ShapeSource` with circle and symbol layers (a paw icon is rasterized into an SDF image). Tapping a cluster zooms in; tapping a cat opens a swipeable preview card; tapping empty map navigates to `/cats/create?lng=...&lat=...`.
+
+### Accessibility conventions
+
+The map's pins are not reachable by screen readers, so the Nearby and Feed tabs are the accessible way to browse cats. When adding UI:
+
+- Every `Pressable`/`TouchableOpacity` gets an `accessibilityRole`. Icon-only buttons (back, close, delete) also need an `accessibilityLabel`.
+- Text inputs get an `accessibilityLabel`, since placeholders disappear once the user types.
+- Segmented controls use `radiogroup`/`radio` with `accessibilityState={{ checked }}`; tab-like switchers use `tablist`/`tab` with `selected`.
+- Long-press actions (delete photo, delete comment) must also be exposed through `accessibilityActions`.
+- Decorative icons and placeholder art are hidden with `importantForAccessibility="no-hide-descendants"` and `accessibilityElementsHidden`.
+- `FadeImage` and `SelectField` take `accessibilityLabel` / `label` props; pass them.
+- Tests for these live in `__tests__/accessibility.test.tsx`. React Native Testing Library v14 needs `await render(...)`.
 
 ### Theme system
 
@@ -71,9 +88,9 @@ Themed primitives: `components/themed-text.tsx`, `components/themed-view.tsx`.
 
 ### Backend (Supabase)
 
-Schema is in `supabase.sql`. The `cats` table has: `id` (uuid), `name`, `type`, `temperament`, `indoor` (bool), `notes`, `lat`, `lng`, `image` (text URL), `created_at`, `owner` (FK → `auth.users`).
+Schema is in `supabase.sql`, with tables `cats`, `profiles`, `follows`, `checkins`, `cat_likes`, and `cat_photos`, all protected by row level security. For `cats`: public SELECT, authenticated INSERT, owner-only UPDATE/DELETE.
 
-RLS policies: public SELECT, authenticated INSERT, owner-only UPDATE/DELETE.
+The `delete-account` Edge Function (`supabase/functions/delete-account`) handles in-app account deletion.
 
 Image uploads use a Supabase Storage bucket named `cat-images` (must be created manually in the Supabase UI as public).
 

@@ -39,6 +39,7 @@ export default function LoginScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Email"
+          accessibilityLabel="Email"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={email}
           onChangeText={setEmail}
@@ -49,6 +50,7 @@ export default function LoginScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Password"
+          accessibilityLabel="Password"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={password}
           onChangeText={setPassword}
@@ -57,15 +59,15 @@ export default function LoginScreen() {
           autoCorrect={false}
         />
 
-        <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleSignIn} disabled={loading}>
+        <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleSignIn} disabled={loading} accessibilityRole="button">
           <ThemedText style={styles.buttonText}>{loading ? "Signing in..." : "Sign in"}</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/forgot-password")}>
+        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/forgot-password")} accessibilityRole="link">
           <ThemedText type="link">Forgot password?</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/register")}>
+        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/register")} accessibilityRole="link">
           <ThemedText type="link">{"Don't have an account? Register"}</ThemedText>
         </TouchableOpacity>
       </View>

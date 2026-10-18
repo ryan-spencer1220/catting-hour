@@ -75,6 +75,7 @@ export default function RegisterScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Username"
+          accessibilityLabel="Username"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={username}
           onChangeText={setUsername}
@@ -87,6 +88,7 @@ export default function RegisterScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Email"
+          accessibilityLabel="Email"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={email}
           onChangeText={setEmail}
@@ -100,6 +102,7 @@ export default function RegisterScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Password"
+          accessibilityLabel="Password"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={password}
           onChangeText={setPassword}
@@ -113,6 +116,7 @@ export default function RegisterScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Confirm password"
+          accessibilityLabel="Confirm password"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={confirm}
           onChangeText={setConfirm}
@@ -130,11 +134,11 @@ export default function RegisterScreen() {
           <Text style={{ color: accent }} onPress={() => router.push("/privacy")}>Privacy Policy</Text>.
         </Text>
 
-        <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleRegister} disabled={loading}>
+        <TouchableOpacity style={[styles.button, dark && { backgroundColor: accent }]} onPress={handleRegister} disabled={loading} accessibilityRole="button">
           <ThemedText style={styles.buttonText}>{loading ? "Creating..." : "Create account"}</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/login")}>
+        <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/(auth)/login")} accessibilityRole="link">
           <ThemedText type="link">Already have an account? Sign in</ThemedText>
         </TouchableOpacity>
       </View>

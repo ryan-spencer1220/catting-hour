@@ -17,9 +17,11 @@ type Props = {
   onChange: (val: string) => void;
   dark: boolean;
   placeholder?: string;
+  /** Name of the field read by screen readers, for example "Type". */
+  label?: string;
 };
 
-export function SelectField({ value, options, onChange, dark, placeholder = "Select…" }: Props) {
+export function SelectField({ value, options, onChange, dark, placeholder = "Select…", label }: Props) {
   const accent = useAccent();
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
@@ -43,18 +45,30 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
       <Pressable
         style={[styles.field, { borderColor, backgroundColor: bg }]}
         onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label ? `${label}, ` : ""}${value || "Not selected"}`}
+        accessibilityHint="Opens a list of options"
+        accessibilityState={{ expanded: open }}
       >
         <Text style={[styles.fieldText, { color: value ? textColor : mutedColor }]}>
           {value || placeholder}
         </Text>
-        <ChevronRight size={18} color={chevronColor} />
+        <ChevronRight size={18} color={chevronColor} accessible={false} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setOpen(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Close options"
+        />
 
-        <View style={[styles.sheet, { backgroundColor: sheetBg, paddingBottom: insets.bottom + 8 }]}>
-          <View style={[styles.handle, { backgroundColor: dark ? "#374151" : "#d1d5db" }]} />
+        <View
+          style={[styles.sheet, { backgroundColor: sheetBg, paddingBottom: insets.bottom + 8 }]}
+          accessibilityViewIsModal
+        >
+          <View importantForAccessibility="no" style={[styles.handle, { backgroundColor: dark ? "#374151" : "#d1d5db" }]} />
 
           <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
             {options.map((opt, i) => (
@@ -66,6 +80,9 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
                   (pressed || opt === value) && { backgroundColor: activeBg },
                 ]}
                 onPress={() => select(opt)}
+                accessibilityRole="button"
+                accessibilityLabel={opt}
+                accessibilityState={{ selected: opt === value }}
               >
                 <Text style={[styles.optionText, { color: textColor }]}>{opt}</Text>
                 {opt === value ? (
@@ -78,6 +95,7 @@ export function SelectField({ value, options, onChange, dark, placeholder = "Sel
           <Pressable
             style={[styles.cancelBtn, { borderTopColor: separatorColor }]}
             onPress={() => setOpen(false)}
+            accessibilityRole="button"
           >
             <Text style={[styles.cancelText, { color: dark ? accent : "#111827" }]}>Cancel</Text>
           </Pressable>

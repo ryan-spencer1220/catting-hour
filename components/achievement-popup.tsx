@@ -2,7 +2,7 @@ import { useAccent } from "@/context/theme";
 import { Achievement } from "@/lib/achievements";
 import React, { useEffect } from "react";
 import { PartyPopper } from "lucide-react-native";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 type Props = {
@@ -24,6 +24,9 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
     if (achievement) {
       opacity.value = withTiming(1, { duration: 200 });
       scale.value = withSpring(1, { damping: 12, stiffness: 180 });
+      AccessibilityInfo.announceForAccessibility(
+        `Achievement unlocked: ${achievement.title}. ${achievement.description}`,
+      );
     } else {
       opacity.value = 0;
       scale.value = 0.7;
@@ -34,14 +37,29 @@ export function AchievementPopup({ achievement, onDismiss }: Props) {
 
   return (
     <Modal transparent animationType="none" visible={!!achievement} onRequestClose={onDismiss}>
-      <Pressable style={styles.overlay} onPress={onDismiss}>
-        <Animated.View style={[styles.card, animatedStyle, { borderColor: accent }]}>
-          <View style={styles.badge}><PartyPopper size={28} color={accent} /></View>
-          <Text style={[styles.achievedLabel, { color: accent }]}>Achievement Unlocked!</Text>
-          <Text style={styles.icon}>{achievement.icon}</Text>
+      {/* Tapping outside the card dismisses it; screen reader users use the button instead. */}
+      <Pressable style={styles.overlay} onPress={onDismiss} accessible={false}>
+        <Animated.View
+          style={[styles.card, animatedStyle, { borderColor: accent }]}
+          accessibilityViewIsModal
+        >
+          <View style={styles.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <PartyPopper size={28} color={accent} />
+          </View>
+          <Text style={[styles.achievedLabel, { color: accent }]} accessibilityRole="header">
+            Achievement Unlocked!
+          </Text>
+          <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
+            {achievement.icon}
+          </Text>
           <Text style={styles.title}>{achievement.title}</Text>
           <Text style={styles.description}>{achievement.description}</Text>
-          <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={onDismiss}>
+          <Pressable
+            style={[styles.button, { backgroundColor: accent }]}
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityHint="Closes the achievement"
+          >
             <Text style={styles.buttonText}>Awesome!</Text>
           </Pressable>
         </Animated.View>

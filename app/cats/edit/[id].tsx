@@ -149,7 +149,7 @@ export default function EditCat() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.heading, dark && styles.headingDark]}>Edit cat</Text>
+        <Text style={[styles.heading, dark && styles.headingDark]} accessibilityRole="header">Edit cat</Text>
 
         <Text style={labelStyle}>Name</Text>
         <TextInput
@@ -157,6 +157,7 @@ export default function EditCat() {
           value={name}
           onChangeText={setName}
           placeholder="Cat name"
+          accessibilityLabel="Name"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
         />
 
@@ -167,6 +168,7 @@ export default function EditCat() {
           onChange={setType}
           dark={dark}
           placeholder="Select type…"
+          label="Type"
         />
 
         <Text style={labelStyle}>Temperament</Text>
@@ -176,10 +178,11 @@ export default function EditCat() {
           onChange={setTemperament}
           dark={dark}
           placeholder="Select temperament…"
+          label="Temperament"
         />
 
         <Text style={labelStyle}>Environment</Text>
-        <View style={styles.segmentRow}>
+        <View style={styles.segmentRow} accessibilityRole="radiogroup" accessibilityLabel="Environment">
           {([true, null, false] as const).map((val) => {
             const label = val === true ? "Indoor" : val === null ? "Both" : "Outdoor";
             const active = indoor === val;
@@ -188,6 +191,9 @@ export default function EditCat() {
                 key={label}
                 style={[styles.segment, active && { backgroundColor: accent }]}
                 onPress={() => setIndoor(val)}
+                accessibilityRole="radio"
+                accessibilityLabel={label}
+                accessibilityState={{ checked: active }}
               >
                 <Text style={[styles.segmentText, { color: active ? "#fff" : dark ? "#9ca3af" : "#6b7280" }]}>{label}</Text>
               </Pressable>
@@ -196,13 +202,23 @@ export default function EditCat() {
         </View>
 
         <Text style={labelStyle}>Photo</Text>
-        <Pressable style={[styles.photoButton, dark && styles.photoButtonDark]} onPress={pickImage}>
+        <Pressable
+          style={[styles.photoButton, dark && styles.photoButtonDark]}
+          onPress={pickImage}
+          accessibilityRole="button"
+        >
           <Text style={[styles.photoButtonText, dark && styles.photoButtonTextDark]}>
             {previewUri ? "Change photo" : "Add photo"}
           </Text>
         </Pressable>
         {previewUri ? (
-          <Image source={{ uri: previewUri }} style={styles.preview} />
+          <Image
+            source={{ uri: previewUri }}
+            style={styles.preview}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={`Photo of ${name || "this cat"}`}
+          />
         ) : null}
 
         <Text style={labelStyle}>Notes</Text>
@@ -211,6 +227,7 @@ export default function EditCat() {
           value={notes}
           onChangeText={setNotes}
           placeholder="Any notes"
+          accessibilityLabel="Notes"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           multiline
           textAlignVertical="top"
@@ -220,6 +237,8 @@ export default function EditCat() {
           style={[styles.button, dark && { backgroundColor: accent }, saving && { opacity: 0.6 }]}
           onPress={submit}
           disabled={saving}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving, busy: saving }}
         >
           <Text style={styles.buttonText}>{saving ? "Saving…" : "Save changes"}</Text>
         </Pressable>
@@ -227,6 +246,7 @@ export default function EditCat() {
         <Pressable
           style={[styles.cancel, dark && { borderColor: accent }]}
           onPress={() => router.back()}
+          accessibilityRole="button"
         >
           <Text style={[styles.cancelText, dark && { color: accent }]}>Cancel</Text>
         </Pressable>

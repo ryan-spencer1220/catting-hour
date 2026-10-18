@@ -62,13 +62,22 @@ export default function MyLoggedCatsScreen() {
     <View style={[styles.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: bg }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={24} color={textPrimary} />
         </Pressable>
-        <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+        <View
+          style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
           <PawPrint size={20} color={accent} />
         </View>
-        <Text style={[styles.title, { color: textPrimary }]}>My Cats</Text>
+        <Text style={[styles.title, { color: textPrimary }]} accessibilityRole="header">My Cats</Text>
       </View>
 
       {loading ? (
@@ -96,6 +105,9 @@ export default function MyLoggedCatsScreen() {
             <Pressable
               style={[styles.gridCard, { backgroundColor: card, width: cardWidth }]}
               onPress={() => router.push(`/cats/${item.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={item.name}
+              accessibilityHint="Opens cat details"
             >
               {item.image ? (
                 <FadeImage

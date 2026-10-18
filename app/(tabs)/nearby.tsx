@@ -83,11 +83,29 @@ export default function RecentlyScreen() {
 
   function renderItem({ item }: { item: CatWithDistance }) {
     return (
-      <Pressable style={[styles.card, { backgroundColor: card }]} onPress={() => router.push(`/cats/${item.id}`)}>
+      <Pressable
+        style={[styles.card, { backgroundColor: card }]}
+        onPress={() => router.push(`/cats/${item.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={[
+          item.name,
+          item.type,
+          item.temperament,
+          item.ownerName ? `added by ${item.ownerName}` : null,
+          `${formatDistance(item.distance, useMetric)} away`,
+        ]
+          .filter(Boolean)
+          .join(", ")}
+        accessibilityHint="Opens cat details"
+      >
         {item.image ? (
           <FadeImage uri={item.image} style={styles.image} />
         ) : (
-          <View style={[styles.imagePlaceholder, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}>
+          <View
+            style={[styles.imagePlaceholder, { backgroundColor: dark ? "#2d3f55" : "#e5e7eb" }]}
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          >
             <PawPrint size={22} color={dark ? "#6b7280" : "#9ca3af"} />
           </View>
         )}
@@ -108,14 +126,24 @@ export default function RecentlyScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: bg }]}>
       <View style={styles.header}>
-        <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+        <View
+          style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
           <Compass size={22} color={accent} />
         </View>
-        <Text style={[styles.heading, { color: textPrimary }]}>Nearby</Text>
+        <Text style={[styles.heading, { color: textPrimary }]} accessibilityRole="header">
+          Nearby
+        </Text>
       </View>
 
       {/* Radius toggle */}
-      <View style={[styles.toggleRow, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
+      <View
+        style={[styles.toggleRow, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Search radius"
+      >
         {RADII.map((r) => {
           const active = r === radius;
           return (
@@ -123,6 +151,9 @@ export default function RecentlyScreen() {
               key={r}
               style={[styles.toggleBtn, active && { backgroundColor: accent }]}
               onPress={() => setRadius(r)}
+              accessibilityRole="radio"
+              accessibilityLabel={`${r} ${useMetric ? "kilometers" : "miles"}`}
+              accessibilityState={{ checked: active }}
             >
               <Text style={[styles.toggleText, { color: active ? "#fff" : textMuted }]}>
                 {r} {useMetric ? "km" : "mi"}
@@ -133,7 +164,12 @@ export default function RecentlyScreen() {
       </View>
 
       {loading ? (
-        <View style={{ padding: 12, paddingTop: 8, gap: 8 }}>
+        <View
+          style={{ padding: 12, paddingTop: 8, gap: 8 }}
+          accessible
+          accessibilityLabel="Loading nearby cats"
+          accessibilityState={{ busy: true }}
+        >
           {[1, 2, 3, 4].map((i) => (
             <View key={i} style={{ flexDirection: "row", gap: 12, backgroundColor: card, padding: 12, borderRadius: 12, alignItems: "center" }}>
               <Skeleton style={{ width: 56, height: 56, borderRadius: 8 }} />
