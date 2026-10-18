@@ -321,7 +321,10 @@ export default function CatDetail() {
             </View>
           ))}
         </View>
-        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={28} color="#fff" />
         </Pressable>
       </View>
@@ -331,7 +334,10 @@ export default function CatDetail() {
   if (!cat) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={28} color="#fff" />
         </Pressable>
         <Text style={{ color: textPrimary, fontSize: 16 }}>Cat not found</Text>
@@ -356,7 +362,7 @@ export default function CatDetail() {
       <View style={{ height: IMAGE_HEIGHT }}>
         {photoUrls.length === 0 ? (
           <View style={[styles.placeholder, { backgroundColor: dark ? "#1a2535" : "#f3f4f6" }]}>
-            <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} />
+            <PawPrint size={52} color={dark ? "#4b5563" : "#d1d5db"} accessible={false} />
             <Text style={[styles.placeholderLabel, { color: textMuted }]}>No photos yet</Text>
             <Text style={[styles.placeholderSub, { color: textMuted }]}>Tap + Photo to add one</Text>
           </View>
@@ -373,6 +379,19 @@ export default function CatDetail() {
                 style={{ width: screenWidth, height: IMAGE_HEIGHT }}
                 onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
                 onLongPress={() => photos[i] && handleDeletePhoto(photos[i])}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`Photo ${i + 1} of ${photoUrls.length} of ${cat.name}`}
+                accessibilityHint="Opens the photo full screen"
+                // Long press deletes a photo; expose the same action to screen readers.
+                accessibilityActions={
+                  photos[i]
+                    ? [{ name: "activate" }, { name: "delete", label: "Delete photo" }]
+                    : [{ name: "activate" }]
+                }
+                onAccessibilityAction={(e) => {
+                  if (e.nativeEvent.actionName === "delete" && photos[i]) handleDeletePhoto(photos[i]);
+                  else { setLightboxIndex(i); setLightboxVisible(true); }
+                }}
               >
                 <FadeImage uri={url} style={{ width: screenWidth, height: IMAGE_HEIGHT }} />
               </Pressable>
@@ -385,6 +404,9 @@ export default function CatDetail() {
           style={[styles.addPhotoBtn, addingPhoto && { opacity: 0.6 }]}
           onPress={handleAddPhoto}
           disabled={addingPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Add photo"
+          accessibilityState={{ disabled: addingPhoto, busy: addingPhoto }}
         >
           {addingPhoto
             ? <ActivityIndicator size="small" color="#fff" />
@@ -394,7 +416,7 @@ export default function CatDetail() {
 
         {/* Photo dots */}
         {photoUrls.length > 1 && (
-          <View style={styles.heroDots}>
+          <View style={styles.heroDots} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             {photoUrls.map((_, i) => (
               <View
                 key={i}
@@ -409,14 +431,24 @@ export default function CatDetail() {
       <View style={styles.identity}>
         <View style={styles.nameRow}>
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>{cat.name}</Text>
+            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2} accessibilityRole="header">
+              {cat.name}
+            </Text>
             {cat.nameUnknown && (
               <View style={[styles.unknownBadge, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
                 <Text style={[styles.unknownBadgeText, { color: textMuted }]}>name unknown</Text>
               </View>
             )}
           </View>
-          <Pressable style={styles.likeBtn} onPress={handleToggleLike} disabled={likeLoading}>
+          <Pressable
+            style={styles.likeBtn}
+            onPress={handleToggleLike}
+            disabled={likeLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Like"
+            accessibilityValue={{ text: `${likeCount} ${likeCount === 1 ? "like" : "likes"}` }}
+            accessibilityState={{ selected: liked, disabled: likeLoading }}
+          >
             <Heart
               size={30}
               color={liked ? "#ef4444" : textMuted}
@@ -439,6 +471,9 @@ export default function CatDetail() {
             ]}
             onPress={() => cat.owner && router.push(`/users/${cat.owner}`)}
             disabled={!cat.owner}
+            accessibilityRole={cat.owner ? "button" : "text"}
+            accessibilityLabel={`Added by ${cat.ownerName}`}
+            accessibilityHint={cat.owner ? "Opens their profile" : undefined}
           >
             <View style={[styles.ownerAvatar, { backgroundColor: accent }]}>
               <Text style={styles.ownerAvatarText}>{(cat.ownerName ?? "?")[0].toUpperCase()}</Text>
@@ -455,11 +490,18 @@ export default function CatDetail() {
       </View>
 
       {/* ── Segmented tabs ── */}
-      <View style={[styles.segmented, { borderBottomColor: dividerColor }]}>
+      <View style={[styles.segmented, { borderBottomColor: dividerColor }]} accessibilityRole="tablist">
         {tabs.map((label, i) => {
           const active = activeTab === i;
           return (
-            <Pressable key={i} style={styles.segment} onPress={() => goToTab(i)}>
+            <Pressable
+              key={i}
+              style={styles.segment}
+              onPress={() => goToTab(i)}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: active }}
+            >
               <Text style={[styles.segmentText, { color: active ? textPrimary : textMuted }]}>{label}</Text>
               <View style={[styles.segmentUnderline, { backgroundColor: active ? accent : "transparent" }]} />
             </Pressable>
@@ -512,6 +554,7 @@ export default function CatDetail() {
                     <TextInput
                       style={[styles.nameSuggestionInput, { backgroundColor: dark ? "#0f1720" : "#fff", borderColor: dark ? "#374151" : "#e5e7eb", color: textPrimary }]}
                       placeholder="Their real name…"
+                      accessibilityLabel="This cat's real name"
                       placeholderTextColor={textMuted}
                       value={nameSuggestion}
                       onChangeText={setNameSuggestion}
@@ -523,6 +566,9 @@ export default function CatDetail() {
                       style={[styles.nameSuggestionBtn, { backgroundColor: accent }, (!nameSuggestion.trim() || submittingName) && { opacity: 0.5 }]}
                       onPress={handleSuggestName}
                       disabled={!nameSuggestion.trim() || submittingName}
+                      accessibilityRole="button"
+                      accessibilityLabel="Save name suggestion"
+                      accessibilityState={{ disabled: !nameSuggestion.trim() || submittingName, busy: submittingName }}
                     >
                       <Text style={styles.nameSuggestionBtnText}>{submittingName ? "…" : "Save"}</Text>
                     </Pressable>
@@ -560,6 +606,8 @@ export default function CatDetail() {
                 <Pressable
                   style={[styles.editBtn, { borderColor: dark ? accent : "#111827" }]}
                   onPress={() => router.push(`/cats/edit/${id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit cat"
                 >
                   <Text style={[styles.editBtnText, { color: dark ? accent : "#111827" }]}>Edit</Text>
                 </Pressable>
@@ -568,6 +616,9 @@ export default function CatDetail() {
                   <Pressable
                     style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
                     disabled={deleting}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete cat"
+                    accessibilityState={{ disabled: deleting, busy: deleting }}
                     onPress={() =>
                       Alert.alert("Delete cat", "Are you sure? This cannot be undone.", [
                         { text: "Cancel", style: "cancel" },
@@ -596,6 +647,8 @@ export default function CatDetail() {
                 {currentUserId && cat?.owner !== currentUserId && (
                   <Pressable
                     style={styles.reportBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Report this cat"
                     onPress={() =>
                       Alert.alert("Report content", "Is something wrong with this listing?", [
                         { text: "Cancel", style: "cancel" },
@@ -629,7 +682,11 @@ export default function CatDetail() {
                 {/* Finder's note — the original note left by whoever added the cat */}
                 {cat.notes ? (
                   <View style={[styles.commentRow, styles.finderNote, { backgroundColor: dark ? "#1a2535" : "#f9fafb" }]}>
-                    <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
+                    <View
+                      style={[styles.commentAvatar, { backgroundColor: accent }]}
+                      importantForAccessibility="no-hide-descendants"
+                      accessibilityElementsHidden
+                    >
                       <Text style={styles.commentAvatarText}>
                         {(cat.ownerName ?? "?")[0].toUpperCase()}
                       </Text>
@@ -658,8 +715,16 @@ export default function CatDetail() {
                         key={c.id}
                         style={styles.commentRow}
                         onLongPress={mine ? () => handleDeleteCheckin(c.id) : undefined}
+                        accessibilityActions={mine ? [{ name: "delete", label: "Delete comment" }] : undefined}
+                        onAccessibilityAction={(e) => {
+                          if (mine && e.nativeEvent.actionName === "delete") handleDeleteCheckin(c.id);
+                        }}
                       >
-                        <View style={[styles.commentAvatar, { backgroundColor: accent }]}>
+                        <View
+                          style={[styles.commentAvatar, { backgroundColor: accent }]}
+                          importantForAccessibility="no-hide-descendants"
+                          accessibilityElementsHidden
+                        >
                           <Text style={styles.commentAvatarText}>
                             {(c.authorName ?? "?")[0].toUpperCase()}
                           </Text>
@@ -676,6 +741,7 @@ export default function CatDetail() {
                             style={styles.commentDelete}
                             onPress={() => handleDeleteCheckin(c.id)}
                             hitSlop={8}
+                            accessibilityRole="button"
                             accessibilityLabel="Delete comment"
                           >
                             <Trash2 size={15} color={textMuted} />
@@ -692,6 +758,7 @@ export default function CatDetail() {
                 <TextInput
                   style={[styles.commentBarInput, { backgroundColor: inputBg, borderColor: inputBorder, color: textPrimary }]}
                   placeholder="Add a comment…"
+                  accessibilityLabel="Add a comment"
                   placeholderTextColor={textMuted}
                   value={newNote}
                   onChangeText={setNewNote}
@@ -704,6 +771,9 @@ export default function CatDetail() {
                   style={[styles.commentBarPost, { backgroundColor: accent }, (!newNote.trim() || submitting) && { opacity: 0.4 }]}
                   onPress={handleAddCheckin}
                   disabled={!newNote.trim() || submitting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Post comment"
+                  accessibilityState={{ disabled: !newNote.trim() || submitting, busy: submitting }}
                 >
                   <Text style={styles.commentBarPostText}>{submitting ? "…" : "Post"}</Text>
                 </Pressable>
@@ -714,7 +784,12 @@ export default function CatDetail() {
       </View>
 
       {/* Back button — fixed over hero */}
-      <Pressable style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+      <Pressable
+        style={[styles.backBtn, { top: insets.top + 12 }]}
+        onPress={() => router.back()}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
         <ChevronLeft size={28} color="#fff" />
       </Pressable>
 
@@ -732,7 +807,7 @@ export default function CatDetail() {
         }}
       >
         <StatusBar hidden />
-        <View style={styles.lightboxBg}>
+        <View style={styles.lightboxBg} accessibilityViewIsModal>
           <ScrollView
             ref={lightboxScrollRef}
             horizontal
@@ -749,6 +824,9 @@ export default function CatDetail() {
                   source={{ uri: url }}
                   style={{ width: screenWidth, height: "100%" }}
                   resizeMode="contain"
+                  accessible
+                  accessibilityRole="image"
+                  accessibilityLabel={`Photo ${i + 1} of ${photoUrls.length} of ${cat.name}`}
                 />
               </View>
             ))}
@@ -759,6 +837,8 @@ export default function CatDetail() {
             style={[styles.lightboxClose, { top: insets.top + 12 }]}
             onPress={() => setLightboxVisible(false)}
             hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close photo viewer"
           >
             <Text style={styles.lightboxCloseText}>✕</Text>
           </Pressable>
@@ -776,6 +856,8 @@ export default function CatDetail() {
           {lightboxIndex > 0 && (
             <Pressable
               style={[styles.lightboxArrow, styles.lightboxArrowLeft]}
+              accessibilityRole="button"
+              accessibilityLabel="Previous photo"
               onPress={() => {
                 const next = lightboxIndex - 1;
                 lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
@@ -790,6 +872,8 @@ export default function CatDetail() {
           {lightboxIndex < photoUrls.length - 1 && (
             <Pressable
               style={[styles.lightboxArrow, styles.lightboxArrowRight]}
+              accessibilityRole="button"
+              accessibilityLabel="Next photo"
               onPress={() => {
                 const next = lightboxIndex + 1;
                 lightboxScrollRef.current?.scrollTo({ x: next * screenWidth, animated: true });
@@ -807,7 +891,7 @@ export default function CatDetail() {
 
 function DetailRow({ label, value, dark }: { label: string; value: string; dark: boolean }) {
   return (
-    <View style={styles.detailRow}>
+    <View style={styles.detailRow} accessible accessibilityLabel={`${label}: ${value}`}>
       <Text style={[styles.detailLabel, { color: dark ? "#6b7280" : "#9ca3af" }]}>{label}</Text>
       <Text style={[styles.detailValue, { color: dark ? "#fff" : "#111827" }]}>{value}</Text>
     </View>

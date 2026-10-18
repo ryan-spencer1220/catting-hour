@@ -197,12 +197,20 @@ export default function ProfileScreen() {
         <View pointerEvents="none" style={styles.pawTR}>
           <PawPrint size={52} color="rgba(255,255,255,0.07)" />
         </View>
-        <View pointerEvents="none" style={styles.pawBR}>
+        <View pointerEvents="none" style={styles.pawBR} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <PawPrint size={96} color="rgba(255,255,255,0.055)" />
         </View>
 
         {/* Avatar */}
-        <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+        <Pressable
+          style={styles.avatarWrap}
+          onPress={handlePickAvatar}
+          disabled={uploadingAvatar}
+          accessibilityRole="button"
+          accessibilityLabel="Profile photo"
+          accessibilityHint="Choose a new profile photo"
+          accessibilityState={{ disabled: uploadingAvatar, busy: uploadingAvatar }}
+        >
           {/* Ring wrapper — no overflow:hidden so border stays round */}
           <View style={styles.avatarRing}>
             {/* Clip wrapper — overflow:hidden crops the image to a circle */}
@@ -236,6 +244,7 @@ export default function ProfileScreen() {
               value={usernameDraft}
               onChangeText={setUsernameDraft}
               placeholder="Username"
+              accessibilityLabel="Username"
               placeholderTextColor="rgba(255,255,255,0.5)"
               autoFocus
               autoCapitalize="none"
@@ -243,12 +252,24 @@ export default function ProfileScreen() {
               returnKeyType="done"
               onSubmitEditing={saveUsername}
             />
-            <Pressable style={styles.editSaveBtn} onPress={saveUsername} disabled={savingUsername}>
+            <Pressable
+              style={styles.editSaveBtn}
+              onPress={saveUsername}
+              disabled={savingUsername}
+              accessibilityRole="button"
+              accessibilityLabel="Save username"
+              accessibilityState={{ disabled: savingUsername, busy: savingUsername }}
+            >
               <Text style={styles.editSaveBtnText}>{savingUsername ? "…" : "Save"}</Text>
             </Pressable>
           </View>
         ) : (
-          <Pressable onPress={() => { setUsernameDraft(user?.user_metadata?.username ?? ""); setEditingUsername(true); }}>
+          <Pressable
+            onPress={() => { setUsernameDraft(user?.user_metadata?.username ?? ""); setEditingUsername(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={displayName ? `Username, ${displayName}` : "Set username"}
+            accessibilityHint={displayName ? "Edits your username" : undefined}
+          >
             <Text style={styles.displayName}>{displayName || "Tap to set username"}</Text>
           </Pressable>
         )}
@@ -261,12 +282,20 @@ export default function ProfileScreen() {
               value={cityDraft}
               onChangeText={setCityDraft}
               placeholder="Your city"
+              accessibilityLabel="City"
               placeholderTextColor="rgba(255,255,255,0.5)"
               autoFocus
               returnKeyType="done"
               onSubmitEditing={saveCity}
             />
-            <Pressable style={styles.editSaveBtn} onPress={saveCity} disabled={savingCity}>
+            <Pressable
+              style={styles.editSaveBtn}
+              onPress={saveCity}
+              disabled={savingCity}
+              accessibilityRole="button"
+              accessibilityLabel="Save city"
+              accessibilityState={{ disabled: savingCity, busy: savingCity }}
+            >
               <Text style={styles.editSaveBtnText}>{savingCity ? "…" : "Save"}</Text>
             </Pressable>
           </View>
@@ -274,6 +303,9 @@ export default function ProfileScreen() {
           <Pressable
             style={styles.cityRow}
             onPress={() => { setCityDraft(user?.user_metadata?.city ?? ""); setEditingCity(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={city ? `City, ${city}` : "Add location"}
+            accessibilityHint={city ? "Edits your city" : undefined}
           >
             <MapPin size={13} color="rgba(255,255,255,0.8)" />
             <Text style={styles.cityText}>{city ?? "Add location"}</Text>
@@ -282,19 +314,19 @@ export default function ProfileScreen() {
 
         {/* Stats pills */}
         <View style={styles.countsRow}>
-          <View style={styles.statPill}>
+          <View style={styles.statPill} accessible accessibilityLabel={`${followCounts.followers} followers`}>
             <Text style={styles.statNumber}>{followCounts.followers}</Text>
             <Text style={styles.statLabel}>Followers</Text>
           </View>
-          <View style={styles.statPill}>
+          <View style={styles.statPill} accessible accessibilityLabel={`${followCounts.following} following`}>
             <Text style={styles.statNumber}>{followCounts.following}</Text>
             <Text style={styles.statLabel}>Following</Text>
           </View>
-          <View style={styles.statPill}>
+          <View style={styles.statPill} accessible accessibilityLabel={`${catsLoading ? "—" : myCats.length} cats`}>
             <Text style={styles.statNumber}>{catsLoading ? "—" : myCats.length}</Text>
             <Text style={styles.statLabel}>Cats</Text>
           </View>
-          <View style={styles.statPill}>
+          <View style={styles.statPill} accessible accessibilityLabel={`${totalCheckins ?? "—"} comments`}>
             <Text style={styles.statNumber}>{totalCheckins ?? "—"}</Text>
             <Text style={styles.statLabel}>Comments</Text>
           </View>
@@ -385,6 +417,9 @@ export default function ProfileScreen() {
         <Pressable
           style={{ width: cardWidth, height: cardWidth }}
           onPress={() => router.push(`/cats/${item.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={item.name}
+          accessibilityHint="Opens cat details"
         >
           {item.image ? (
             <FadeImage uri={item.image} style={{ width: cardWidth, height: cardWidth }} />

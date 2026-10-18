@@ -159,22 +159,31 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={styles.sectionTitle} accessibilityRole="header">
             Appearance
           </ThemedText>
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Dark mode</ThemedText>
-            <Switch {...switchProps} value={useDarkMode} onValueChange={setUseDarkMode} />
+            <Switch
+              {...switchProps}
+              value={useDarkMode}
+              onValueChange={setUseDarkMode}
+              accessibilityLabel="Dark mode"
+            />
           </View>
 
           <View style={[styles.row, { alignItems: "center" }]}>
             <ThemedText style={styles.rowLabel}>Accent color</ThemedText>
-            <View style={styles.swatches}>
+            <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel="Accent color">
               {ACCENT_COLORS.map(({ value: hex, label }) => (
                 <Pressable
                   key={hex}
                   onPress={() => setAccent(hex)}
+                  // Swatches are color-only, so give each one a spoken name.
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: accent === hex }}
                   style={[
                     styles.swatch,
                     { backgroundColor: hex },
@@ -188,20 +197,25 @@ export default function SettingsScreen() {
 
         {/* Notifications */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={styles.sectionTitle} accessibilityRole="header">
             Notifications
           </ThemedText>
 
           <View style={styles.row}>
             <ThemedText style={styles.rowLabel}>Enable notifications</ThemedText>
-            <Switch {...switchProps} value={notificationsEnabled} onValueChange={handleToggleNotifications} />
+            <Switch
+              {...switchProps}
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              accessibilityLabel="Enable notifications"
+            />
           </View>
 
         </View>
 
         {/* Units */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={styles.sectionTitle} accessibilityRole="header">
             Units
           </ThemedText>
 
@@ -210,12 +224,24 @@ export default function SettingsScreen() {
               <ThemedText style={styles.rowLabel}>Distance</ThemedText>
             </View>
 
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity style={[styles.unitButton, useMetric && { backgroundColor: accent }]} onPress={() => setUseMetric(true)}>
+            <View style={{ flexDirection: "row" }} accessibilityRole="radiogroup" accessibilityLabel="Distance units">
+              <TouchableOpacity
+                style={[styles.unitButton, useMetric && { backgroundColor: accent }]}
+                onPress={() => setUseMetric(true)}
+                accessibilityRole="radio"
+                accessibilityLabel="Kilometers"
+                accessibilityState={{ checked: useMetric }}
+              >
                 <ThemedText style={[styles.unitText, useMetric && { color: "#fff", fontWeight: "700" }]}>km</ThemedText>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.unitButton, !useMetric && { backgroundColor: accent }]} onPress={() => setUseMetric(false)}>
+              <TouchableOpacity
+                style={[styles.unitButton, !useMetric && { backgroundColor: accent }]}
+                onPress={() => setUseMetric(false)}
+                accessibilityRole="radio"
+                accessibilityLabel="Miles"
+                accessibilityState={{ checked: !useMetric }}
+              >
                 <ThemedText style={[styles.unitText, !useMetric && { color: "#fff", fontWeight: "700" }]}>mi</ThemedText>
               </TouchableOpacity>
             </View>
@@ -224,7 +250,7 @@ export default function SettingsScreen() {
 
         {/* Account */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={styles.sectionTitle} accessibilityRole="header">
             Account
           </ThemedText>
 
@@ -239,22 +265,31 @@ export default function SettingsScreen() {
             </View>
           )}
 
-          <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleSignOut} disabled={signingOut}>
+          <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleSignOut}
+            disabled={signingOut}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: signingOut, busy: signingOut }}
+          >
             <ThemedText style={[styles.actionText, styles.dangerText]}>{signingOut ? "Signing out..." : "Sign out"}</ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleDeleteAccount} disabled={deletingAccount}>
+          <TouchableOpacity style={[styles.action, styles.danger]} onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            accessibilityRole="button"
+            accessibilityHint="Permanently deletes your account and data"
+            accessibilityState={{ disabled: deletingAccount, busy: deletingAccount }}
+          >
             <ThemedText style={[styles.actionText, styles.deleteText]}>{deletingAccount ? "Deleting account..." : "Delete account"}</ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* Legal */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Legal</ThemedText>
-          <TouchableOpacity style={styles.action} onPress={() => router.push("/privacy")}>
+          <ThemedText type="subtitle" style={styles.sectionTitle} accessibilityRole="header">Legal</ThemedText>
+          <TouchableOpacity style={styles.action} onPress={() => router.push("/privacy")} accessibilityRole="link">
             <ThemedText style={styles.actionText}>Privacy Policy</ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.action} onPress={() => router.push("/terms")}>
+          <TouchableOpacity style={styles.action} onPress={() => router.push("/terms")} accessibilityRole="link">
             <ThemedText style={styles.actionText}>Terms of Service</ThemedText>
           </TouchableOpacity>
         </View>

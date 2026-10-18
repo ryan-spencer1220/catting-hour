@@ -18,13 +18,22 @@ export function EmptyState({ icon, title, body, cta }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconWrap, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+      <View
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        style={[styles.iconWrap, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
         {icon}
       </View>
-      <Text style={[styles.title, { color: textPrimary }]}>{title}</Text>
+      <Text style={[styles.title, { color: textPrimary }]} accessibilityRole="header">
+        {title}
+      </Text>
       {body ? <Text style={[styles.body, { color: textMuted }]}>{body}</Text> : null}
       {cta ? (
-        <Pressable style={[styles.cta, { backgroundColor: accent }]} onPress={cta.onPress}>
+        <Pressable
+          style={[styles.cta, { backgroundColor: accent }]}
+          onPress={cta.onPress}
+          accessibilityRole="button"
+        >
           <Text style={styles.ctaText}>{cta.label}</Text>
         </Pressable>
       ) : null}

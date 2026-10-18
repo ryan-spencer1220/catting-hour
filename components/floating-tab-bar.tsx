@@ -37,7 +37,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       style={[styles.wrapper, hideStyle, { bottom: Math.max(insets.bottom, 12) + 8 }]}
       pointerEvents={hidden ? "none" : "box-none"}
     >
-      <View style={styles.pillShadow}>
+      <View style={styles.pillShadow} accessibilityRole="tablist">
         <BlurView
           intensity={dark ? 60 : 70}
           tint={dark ? "dark" : "light"}
@@ -84,9 +84,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 onPress={onPress}
                 onLongPress={onLongPress}
                 style={styles.tab}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={options.tabBarAccessibilityLabel}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isFocused }}
+                // Tabs are icon-only, so fall back to the screen title for a spoken name.
+                accessibilityLabel={
+                  options.tabBarAccessibilityLabel ??
+                  (typeof options.title === "string" ? options.title : route.name)
+                }
               >
                 {/* Active indicator dot */}
                 {isFocused && (

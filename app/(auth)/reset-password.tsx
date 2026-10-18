@@ -55,6 +55,7 @@ export default function ResetPasswordScreen() {
         <TextInput
           style={inputStyle}
           placeholder="New password"
+          accessibilityLabel="New password"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={password}
           onChangeText={setPassword}
@@ -66,6 +67,7 @@ export default function ResetPasswordScreen() {
         <TextInput
           style={inputStyle}
           placeholder="Confirm new password"
+          accessibilityLabel="Confirm new password"
           placeholderTextColor={dark ? "#6b7280" : "#9ca3af"}
           value={confirm}
           onChangeText={setConfirm}
@@ -78,6 +80,7 @@ export default function ResetPasswordScreen() {
           style={[styles.button, dark && { backgroundColor: accent }, loading && { opacity: 0.6 }]}
           onPress={handleReset}
           disabled={loading}
+          accessibilityRole="button"
         >
           <ThemedText style={styles.buttonText}>
             {loading ? "Updating…" : "Update password"}

@@ -13,9 +13,11 @@ type Props = {
   uri: string;
   style?: StyleProp<ViewStyle>;
   resizeMode?: "cover" | "contain" | "stretch" | "center";
+  /** Description read by screen readers. Omit for decorative images. */
+  accessibilityLabel?: string;
 };
 
-export function FadeImage({ uri, style, resizeMode = "cover" }: Props) {
+export function FadeImage({ uri, style, resizeMode = "cover", accessibilityLabel }: Props) {
   const dark = useColorScheme() === "dark";
   const [loaded, setLoaded] = useState(false);
   const imageOpacity = useSharedValue(0);
@@ -45,7 +47,14 @@ export function FadeImage({ uri, style, resizeMode = "cover" }: Props) {
   const shimmerBg = dark ? "#3a4f68" : "#d1d5db";
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }, style]}>
+    <View
+      style={[styles.root, { backgroundColor: bg }, style]}
+      accessible={!!accessibilityLabel}
+      accessibilityRole={accessibilityLabel ? "image" : undefined}
+      accessibilityLabel={accessibilityLabel}
+      importantForAccessibility={accessibilityLabel ? "yes" : "no-hide-descendants"}
+      accessibilityElementsHidden={!accessibilityLabel}
+    >
       {!loaded && (
         <Animated.View
           style={[StyleSheet.absoluteFill, { backgroundColor: shimmerBg }, shimmerStyle]}

@@ -23,10 +23,15 @@ export default function PrivacyScreen() {
     <View style={[styles.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: bg }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft size={24} color={textPrimary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: textPrimary }]}>Privacy Policy</Text>
+        <Text style={[styles.headerTitle, { color: textPrimary }]} accessibilityRole="header">Privacy Policy</Text>
         <View style={{ width: 40 }} />
       </View>
 

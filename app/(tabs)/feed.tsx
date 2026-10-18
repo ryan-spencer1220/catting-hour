@@ -104,11 +104,25 @@ export default function FeedScreen() {
       <Pressable
         style={[styles.card, { backgroundColor: card }]}
         onPress={() => router.push(`/cats/${item.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={[
+          item.name,
+          ...tags,
+          item.ownerName ? `by ${item.ownerName}` : null,
+          timeAgo(item.createdAt),
+        ]
+          .filter(Boolean)
+          .join(", ")}
+        accessibilityHint="Opens cat details"
       >
         {item.image ? (
           <FadeImage uri={item.image} style={styles.hero} />
         ) : (
-          <View style={[styles.heroPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+          <View
+            style={[styles.heroPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          >
             <PawPrint size={40} color={dark ? "#4b5563" : "#d1d5db"} />
           </View>
         )}
@@ -173,10 +187,16 @@ export default function FeedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <View style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}>
+          <View
+            style={[styles.iconRing, { backgroundColor: dark ? `${accent}25` : `${accent}18` }]}
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          >
             <Cat size={22} color={accent} />
           </View>
-          <Text style={[styles.heading, { color: textPrimary }]}>Feed</Text>
+          <Text style={[styles.heading, { color: textPrimary }]} accessibilityRole="header">
+            Feed
+          </Text>
         </View>
         <Animated.View style={[styles.fetchingLabel, fetchingStyle]}>
           <Text style={[styles.fetchingLabelText, { color: textMuted }]}>fetching cats…</Text>
@@ -184,12 +204,18 @@ export default function FeedScreen() {
       </View>
 
       {/* Toggle */}
-      <View style={[styles.toggleRow, { backgroundColor: toggleBg }]}>
+      <View
+        style={[styles.toggleRow, { backgroundColor: toggleBg }]}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Show cats from"
+      >
         {(["all", "following"] as Filter[]).map((f) => (
           <Pressable
             key={f}
             style={[styles.toggleBtn, filter === f && { backgroundColor: toggleActiveBg }]}
             onPress={() => setFilter(f)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: filter === f }}
           >
             <Text style={[styles.toggleText, { color: filter === f ? toggleActiveText : toggleInactiveText }]}>
               {f === "all" ? "All" : "Following"}
@@ -224,7 +250,12 @@ export default function FeedScreen() {
 
 function FeedSkeleton({ card }: { card: string }) {
   return (
-    <View style={{ padding: 12, gap: 12 }}>
+    <View
+      style={{ padding: 12, gap: 12 }}
+      accessible
+      accessibilityLabel="Loading cats"
+      accessibilityState={{ busy: true }}
+    >
       {[1, 2, 3].map((i) => (
         <View key={i} style={[feedSkeletonStyles.card, { backgroundColor: card }]}>
           <Skeleton style={{ width: "100%", height: 180 }} radius={0} />

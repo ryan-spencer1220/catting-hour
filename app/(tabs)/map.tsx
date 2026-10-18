@@ -8,7 +8,7 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapIcon, PawPrint, X } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -57,6 +57,7 @@ export default function MapScreen() {
   function showCallout(cat: Cat) {
     setSelectedCat(cat);
     setHidden(true);
+    AccessibilityInfo.announceForAccessibility(`${cat.name} selected`);
     cardY.value = withSpring(0, { damping: 26, stiffness: 220 });
   }
 
@@ -187,7 +188,7 @@ export default function MapScreen() {
   if (!Mapbox) {
     return (
       <View style={[styles.fallback, dark && styles.fallbackDark]}>
-        <MapIcon size={48} color="#9ca3af" style={{ marginBottom: 16 }} />
+        <MapIcon size={48} color="#9ca3af" style={{ marginBottom: 16 }} accessible={false} />
         <Text style={[styles.fallbackTitle, dark && styles.fallbackTitleDark]}>
           Development Build Required
         </Text>
@@ -338,20 +339,30 @@ export default function MapScreen() {
       >
         {selectedCat && (
           <>
-            <View style={styles.handle} />
+            <View style={styles.handle} importantForAccessibility="no" />
 
             {/* Large hero photo with the name + tags overlaid */}
             <View style={styles.hero}>
               {selectedCat.image ? (
-                <FadeImage uri={selectedCat.image} style={styles.heroImg} />
+                <FadeImage
+                  uri={selectedCat.image}
+                  style={styles.heroImg}
+                  accessibilityLabel={`Photo of ${selectedCat.name}`}
+                />
               ) : (
-                <View style={[styles.heroImg, styles.heroPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}>
+                <View
+                  style={[styles.heroImg, styles.heroPlaceholder, { backgroundColor: dark ? "#2d3f55" : "#f3f4f6" }]}
+                  importantForAccessibility="no-hide-descendants"
+                  accessibilityElementsHidden
+                >
                   <PawPrint size={48} color={dark ? "#4b5563" : "#d1d5db"} />
                 </View>
               )}
 
               <View style={styles.heroOverlay} pointerEvents="none">
-                <Text style={styles.heroName} numberOfLines={1}>{selectedCat.name}</Text>
+                <Text style={styles.heroName} numberOfLines={1} accessibilityRole="header">
+                  {selectedCat.name}
+                </Text>
                 {(selectedCat.type || selectedCat.temperament) && (
                   <View style={styles.heroTags}>
                     {[selectedCat.type, selectedCat.temperament].filter(Boolean).map((tag) => (
@@ -363,7 +374,13 @@ export default function MapScreen() {
                 )}
               </View>
 
-              <Pressable style={styles.heroDismiss} onPress={dismissCallout} hitSlop={10}>
+              <Pressable
+                style={styles.heroDismiss}
+                onPress={dismissCallout}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Close preview"
+              >
                 <X size={18} color="#fff" />
               </Pressable>
             </View>
@@ -378,6 +395,8 @@ export default function MapScreen() {
             <Pressable
               style={[styles.viewBtn, { backgroundColor: accent }]}
               onPress={() => openDetail(selectedCat.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${selectedCat.name}`}
             >
               <Text style={styles.viewBtnText}>View cat</Text>
             </Pressable>
